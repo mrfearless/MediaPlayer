@@ -90,8 +90,8 @@ MediaPlayerAboutDlgProc PROC USES EBX hWin:HWND, iMsg:DWORD, wParam:WPARAM, lPar
         mov eax, lParam
         .IF eax == hWebsiteURL || eax == hTxtInfo || eax == hTxtVersion
             Invoke SetTextColor, wParam, 0h
-            Invoke SetBkMode, wParam, TRANSPARENT
-            Invoke GetStockObject, NULL_BRUSH
+            Invoke SetBkMode, wParam, OPAQUE
+            Invoke GetStockObject, WHITE_BRUSH
             ret
        .ENDIF
         

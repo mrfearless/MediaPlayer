@@ -125,7 +125,7 @@ Group=Assembly,Resources,Misc
 14=1
 15=1
 [AutoLoad]
-AutoLoad=1,2,15
+AutoLoad=1,2,15,8
 [VersionControl]
 Settings=1279
 Milestones=129
@@ -160,7 +160,7 @@ ProductVer2Range=0
 ProductVer3Range=0
 ProductVer4Range=0
 [PTimer]
-PTimer=34134560
+PTimer=34277716
 [Collapse]
 2=
 15=8392722,16388
@@ -170,7 +170,7 @@ PTimer=34134560
 11=245
 10=42064
 9=1605637,2
-8=64
+8=
 1=136339776,17345193,25690112
 [Size]
 2=0,0,0,0,4892
@@ -181,7 +181,7 @@ PTimer=34134560
 11=0,0,0,0,84
 10=0,0,0,0,84
 9=0,0,0,0,84
-8=0,0,0,0,84
+8=0,0,0,0,3660
 4=0,0,0,0
 7=0,0,0,0
 6=0,0,0,0

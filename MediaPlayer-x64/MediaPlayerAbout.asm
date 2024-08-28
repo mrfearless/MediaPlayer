@@ -90,8 +90,8 @@ MediaPlayerAboutDlgProc PROC FRAME USES RBX hWin:HWND, iMsg:DWORD, wParam:WPARAM
         mov rax, lParam
         .IF rax == hWebsiteURL || rax == hTxtInfo || rax == hTxtVersion
             Invoke SetTextColor, wParam, 0h ;0FFFFFFh
-            Invoke SetBkMode, wParam, TRANSPARENT
-            Invoke GetStockObject, NULL_BRUSH
+            Invoke SetBkMode, wParam, OPAQUE
+            Invoke GetStockObject, WHITE_BRUSH
             ret
        .ENDIF
         
