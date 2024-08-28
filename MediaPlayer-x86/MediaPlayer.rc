@@ -1,0 +1,7 @@
+#include "Res/MediaPlayerAboutDlg.rc"
+#include "Res/MediaPlayerControlsDlg.rc"
+#include "Res/MediaPlayerAcl.rc"
+#include "Res/MediaPlayerVer.rc"
+#include "Res/MediaPlayerMnu.rc"
+#include "Res/MediaPlayerDlg.rc"
+#include "Res/MediaPlayerRes.rc"
