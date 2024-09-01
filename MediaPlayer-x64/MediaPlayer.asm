@@ -225,6 +225,7 @@ WndProc PROC FRAME hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
             
         .ELSEIF eax == IDM_MC_SLOWER || eax == IDM_SM_Slower || eax == ACC_MC_SLOWER
             .IF pMI != 0
+                xor rax, rax
                 mov eax, dwCurrentRate
                 shr eax, 1 ; /2
                 Invoke MFPMediaPlayer_SetRate, pMP, eax
@@ -232,6 +233,7 @@ WndProc PROC FRAME hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
             
         .ELSEIF eax == IDM_MC_FASTER || eax == IDM_SM_Faster || eax == ACC_MC_FASTER
             .IF pMI != 0
+                xor rax, rax
                 mov eax, dwCurrentRate
                 shl eax, 1 ; x2
                 Invoke MFPMediaPlayer_SetRate, pMP, eax
@@ -1202,7 +1204,7 @@ MFP_OnMediaPlayerEvent PROC FRAME USES RBX lpThis:QWORD, pEventHeader:QWORD
         PrintText 'MFP_EVENT_TYPE_RATE_SET'
         ENDIF
         mov rbx, pEventHeader
-        mov eax, dword ptr [ebx].MFP_RATE_SET_EVENT.flRate
+        mov eax, dword ptr [rbx].MFP_RATE_SET_EVENT.flRate
         mov dword ptr fRate, eax
         finit
         fwait

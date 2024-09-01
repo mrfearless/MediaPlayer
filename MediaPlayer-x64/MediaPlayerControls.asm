@@ -241,6 +241,7 @@ MediaPlayerControlsProc PROC FRAME USES RBX hWin:HWND, uMsg:UINT, wParam:WPARAM,
             
         .ELSEIF eax == IDC_MPC_Faster
             .IF pMI != 0
+                xor rax, rax
                 mov eax, dwCurrentRate
                 shl eax, 1 ; x2
                 Invoke MFPMediaPlayer_SetRate, pMP, eax
@@ -248,6 +249,7 @@ MediaPlayerControlsProc PROC FRAME USES RBX hWin:HWND, uMsg:UINT, wParam:WPARAM,
             
         .ELSEIF eax == IDC_MPC_Slower
             .IF pMI != 0
+                xor rax, rax
                 mov eax, dwCurrentRate
                 shr eax, 1 ; /2
                 Invoke MFPMediaPlayer_SetRate, pMP, eax
