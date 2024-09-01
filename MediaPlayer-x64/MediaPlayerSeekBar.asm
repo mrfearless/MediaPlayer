@@ -19,6 +19,7 @@ MPSBSetPositionMS           PROTO hControl:QWORD, dwPositionMS:DWORD
 MPSBGetPositionMS           PROTO hControl:QWORD
 MPSBStart                   PROTO hControl:QWORD
 MPSBStop                    PROTO hControl:QWORD
+MPSBStepPosition            PROTO hControl:QWORD, dwSeconds:DWORD, bForward:QWORD
 
 ; MediaPlayer Seek Bar Control Functions (Internal):
 _MPSBWndProc                PROTO hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
@@ -67,7 +68,7 @@ MPSB_TIMER_INTERVAL     EQU 250 ; 500 ; 1000 ; ms
 MPSB_BACKCOLOR          EQU MAINWINDOW_BACKCOLOR
 MPSB_FS_BACKCOLOR       EQU MAINWINDOW_FS_BACKCOLOR
 
-MPSB_BORDERCOLOR        EQU RGB(128,128,128) ; RGB(168,168,168) ; 
+MPSB_BORDERCOLOR        EQU RGB(128,128,128)
 MPSB_BACKCOLORFROM      EQU RGB(189,189,189)
 MPSB_BACKCOLORTO        EQU RGB(235,235,235)
 
@@ -82,7 +83,12 @@ MPSB_FS_POSCOLORFROM    EQU RGB(100,168,232)
 MPSB_FS_POSCOLORTO      EQU RGB(76,150,220)
 
 .DATA
+IFDEF __UNICODE__
+szMPSBClass             DB 'M',0,'e',0,'d',0,'i',0,'a',0,'P',0,'l',0,'a',0,'y',0,'e',0,'r',0,'S',0,'e',0,'e',0,'k',0,'B',0,'a',0,'r',0     ; Class name for creating our MediaPlayerSeekBar control
+                        DB 0,0,0,0
+ELSE
 szMPSBClass             DB 'MediaPlayerSeekBar',0     ; Class name for creating our MediaPlayerSeekBar control
+ENDIF
 
 
 .CODE
@@ -1115,7 +1121,59 @@ MPSBStop PROC FRAME hControl:QWORD
     ret
 MPSBStop ENDP
 
-
+;------------------------------------------------------------------------------
+; MPSBStepPosition
+;------------------------------------------------------------------------------
+MPSBStepPosition PROC FRAME USES RBX hControl:QWORD, dwSeconds:DWORD, bForward:QWORD
+    LOCAL dwPositionMS:DWORD
+    LOCAL dwState:DWORD
+    
+    Invoke IsWindow, hControl
+    .IF rax == TRUE
+        Invoke GetWindowLong, hControl, @MPSB_MediaWindow
+        Invoke IsWindow, rax
+        .IF rax == TRUE
+        
+            Invoke MFPMediaPlayer_GetState, pMP, Addr dwState
+            mov eax, dwState
+            .IF eax == MFP_MEDIAPLAYER_STATE_EMPTY || eax == MFP_MEDIAPLAYER_STATE_SHUTDOWN || eax == MFP_MEDIAPLAYER_STATE_STOPPED
+                ret
+            .ENDIF
+        
+            Invoke GetWindowLong, hControl, @MPSB_PositionMS
+            mov dwPositionMS, eax
+        
+            mov eax, dwSeconds
+            .IF eax == 0
+                mov eax, 10
+            .ENDIF
+            mov ebx, 1000
+            mul ebx ; convert to milliseconds
+            mov ebx, dwPositionMS
+            .IF bForward == TRUE
+                add ebx, eax
+            .ELSE
+                sub ebx, eax
+                .IF sdword ptr ebx < 0
+                    mov ebx, 0
+                .ENDIF
+            .ENDIF
+            mov dwPositionMS, ebx
+            
+            ;------------------------------------------------------------------
+            ; If timer is firing, we prevent it from updating whilst we are
+            ; setting the position +/- 10 seconds, by faking mouse down
+            ;------------------------------------------------------------------  
+            Invoke SetWindowLong, hControl, @MPSB_MouseDown, TRUE
+            Invoke MFPMediaPlayer_SetPosition, pMP, dwPositionMS
+            ;Invoke MFPMediaPlayer_UpdateVideo, pMP
+            Invoke SetWindowLong, hControl, @MPSB_MouseDown, FALSE
+            
+        .ENDIF
+    .ENDIF
+    
+    ret
+MPSBStepPosition ENDP
 
 
 

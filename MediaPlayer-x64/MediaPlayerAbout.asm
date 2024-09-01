@@ -23,6 +23,26 @@ IDC_TxtInfo                     EQU 17004
 IDC_TxtVersion                  EQU 17005
 
 .DATA
+IFDEF __UNICODE__
+mrfearless_github               DB "h",0,"t",0,"t",0,"p",0,"s",0,":",0,"/",0,"/",0,"g",0,"i",0,"t",0,"h",0,"u",0,"b",0,".",0,"c",0,"o",0,"m",0
+                                DB "/",0,"m",0,"r",0,"f",0,"e",0,"a",0,"r",0,"l",0,"e",0,"s",0,"s",0
+                                DB 0,0,0,0
+szShellOpen                     DB "o",0,"p",0,"e",0,"n",0
+                                DB 0,0,0,0
+szAboutBoxInfoText              DB "M",0,"e",0,"d",0,"i",0,"a",0,"P",0,"l",0,"a",0,"y",0,"e",0,"r",0," ",0,"u",0,"s",0,"e",0,"s",0," ",0,"t",0,"h",0,"e",0," ",0
+                                DB "c",0,"u",0,"s",0,"t",0,"o",0,"m",0," ",0,"M",0,"F",0,"P",0,"l",0,"a",0,"y",0,"e",0,"r",0,".",0,"l",0,"i",0,"b",0," ",0
+                                DB "l",0,"i",0,"b",0,"r",0,"a",0,"r",0,"y",0," ",0,"f",0,"u",0,"n",0,"c",0,"t",0,"i",0,"o",0,"n",0,"s",0,13,0,10,0
+                                DB "w",0,"h",0,"i",0,"c",0,"h",0," ",0,"w",0,"r",0,"a",0,"p",0," ",0,"t",0,"h",0,"e",0," ",0,"m",0,"e",0,"t",0,"h",0,"o",0,"d",0,"s",0," ",0
+                                DB "o",0,"f",0," ",0,"t",0,"h",0,"e",0," ",0,"M",0,"F",0,"P",0,"l",0,"a",0,"y",0," ",0,"C",0,"O",0,"M",0," ",0
+                                DB "O",0,"b",0,"j",0,"e",0,"c",0,"t",0,"s",0,":",0," ",0,13,0,10,0
+                                DB "I",0,"M",0,"F",0,"M",0,"e",0,"d",0,"i",0,"a",0,"P",0,"l",0,"a",0,"y",0,"e",0,"r",0," ",0,"a",0,"n",0,"d",0," ",0
+                                DB "I",0,"M",0,"F",0,"M",0,"e",0,"d",0,"i",0,"a",0,"I",0,"t",0,"e",0,"m",0,".",0,13,0,10,0,13,0,10,0
+                                DB "M",0,"F",0,"P",0,"l",0,"a",0,"y",0," ",0,"i",0,"s",0," ",0,"a",0," ",0,"M",0,"i",0,"c",0,"r",0,"o",0,"s",0,"o",0,"f",0,"t",0," ",0
+                                DB "M",0,"e",0,"d",0,"i",0,"a",0," ",0,"F",0,"o",0,"u",0,"n",0,"d",0,"a",0,"t",0,"i",0,"o",0,"n",0," ",0,"A",0,"P",0,"I",0,13,0,10,0
+                                DB "f",0,"o",0,"r",0," ",0,"c",0,"r",0,"e",0,"a",0,"t",0,"i",0,"n",0,"g",0," ",0,"m",0,"e",0,"d",0,"i",0,"a",0," ",0
+                                DB "p",0,"l",0,"a",0,"y",0,"b",0,"a",0,"c",0,"k",0," ",0,"a",0,"p",0,"p",0,"l",0,"i",0,"c",0,"a",0,"t",0,"i",0,"o",0,"n",0,"s",0,".",0
+                                DB 0,0,0,0
+ELSE
 mrfearless_github               DB "https://github.com/mrfearless",0
 szShellOpen                     DB "open",0
 szAboutBoxInfoText              DB "MediaPlayer uses the custom MFPlayer.lib library functions,",13,10
@@ -30,6 +50,7 @@ szAboutBoxInfoText              DB "MediaPlayer uses the custom MFPlayer.lib lib
                                 DB "IMFMediaPlayer and IMFMediaItem.",13,10,13,10
                                 DB "MFPlay is a Microsoft Media Foundation API",13,10
                                 DB "for creating media playback applications.",0
+ENDIF
 
 .DATA?
 hWebsiteURL                     DQ ?

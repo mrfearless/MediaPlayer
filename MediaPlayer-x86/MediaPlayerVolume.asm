@@ -48,27 +48,30 @@ MPV_RIGHT               EQU 8
 MPV_BACKCOLOR           EQU MAINWINDOW_BACKCOLOR
 MPV_FS_BACKCOLOR        EQU MAINWINDOW_FS_BACKCOLOR
 
-MPV_BORDERCOLOR         EQU RGB(128,128,128) ;RGB(128,128,128)
+MPV_BORDERCOLOR         EQU RGB(128,128,128)
 MPV_BACKCOLORFROM       EQU RGB(189,189,189)
 MPV_BACKCOLORTO         EQU RGB(225,225,225)
 
-MPV_FS_BORDERCOLOR      EQU RGB(128,128,128) ;RGB(140,140,140)
+MPV_FS_BORDERCOLOR      EQU RGB(128,128,128)
 MPV_FS_BACKCOLORFROM    EQU RGB(104,104,104)
 MPV_FS_BACKCOLORTO      EQU RGB(140,140,140)
 
-MPV_LEVELCOLORFROM      EQU RGB(78,156,228) ; RGB(55,143,225)
+MPV_LEVELCOLORFROM      EQU RGB(78,156,228)
 MPV_LEVELCOLORTO        EQU RGB(46,138,224)
 
-MPV_FS_LEVELCOLORFROM   EQU RGB(122,180,235) ; RGB(100,168,232)
+MPV_FS_LEVELCOLORFROM   EQU RGB(122,180,235)
 MPV_FS_LEVELCOLORTO     EQU RGB(91,163,230)
 
 MPV_HIGHLIGHTCOLOR      EQU RGB(198,212,224)
 
 
 .DATA
-
+IFDEF __UNICODE__
+szMPVClass              DB 'M',0,'e',0,'d',0,'i',0,'a',0,'P',0,'l',0,'a',0,'y',0,'e',0,'r',0,'V',0,'o',0,'l',0,'u',0,'m',0,'e',0     ; Class name for creating our MediaPlayerVolume control
+                        DB 0,0,0,0
+ELSE
 szMPVClass              DB 'MediaPlayerVolume',0     ; Class name for creating our MediaPlayerVolume control
-
+ENDIF
 
 .CODE
 ;------------------------------------------------------------------------------
@@ -115,7 +118,6 @@ MediaPlayerVolumeRegister ENDP
 ; Returns handle in eax of the newly created control.
 ;------------------------------------------------------------------------------
 MediaPlayerVolumeCreate PROC hWndParent:DWORD, xpos:DWORD, ypos:DWORD, dwWidth:DWORD, dwHeight:DWORD, dwResourceID:DWORD, dwStyle:DWORD
-    LOCAL wc:WNDCLASSEX
     LOCAL hinstance:DWORD
     LOCAL hControl:DWORD
     LOCAL dwNewStyle:DWORD

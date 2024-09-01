@@ -14,8 +14,8 @@
 .XMM
 .model flat,stdcall
 option casemap:none
-include \masm32\macros\macros.asm
 
+__UNICODE__ EQU 1
 MP_PATTERN_BACKGROUND EQU 1 ; comment out to allow pattern backgrounds
 
 ;DEBUG32 EQU 1
@@ -43,7 +43,6 @@ include MediaPlayerLabels.asm   ; Label controls for position and duration
 include MediaPlayerVolume.asm   ; Volume Slider Control
 include MediaPlayerSeekBar.asm  ; Seek Bar Control
 include MediaPlayerControls.asm ; Toolbars & toolbar buttons for main MFPlay features
-
 
 
 .code
@@ -172,7 +171,7 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                 .IF eax == TRUE
                     Invoke MFPMediaPlayer_UpdateVideo, pMP
                     Invoke UpdateWindow, hMediaPlayerWindow
-                    Invoke SendMessage, hMPC_ToolbarScreen, TB_CHANGEBITMAP, IDC_MPC_Aspect, TBID_MPC_A_STRETCH
+                    ;Invoke SendMessage, hMPC_ToolbarScreen, TB_CHANGEBITMAP, IDC_MPC_Aspect, TBID_MPC_A_STRETCH
                 .ELSE
                     IFDEF DEBUG32
                     PrintText 'MFVideoARMode_None failed'
@@ -186,12 +185,35 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                 .IF eax == TRUE
                     Invoke MFPMediaPlayer_UpdateVideo, pMP
                     Invoke UpdateWindow, hMediaPlayerWindow
-                    Invoke SendMessage, hMPC_ToolbarScreen, TB_CHANGEBITMAP, IDC_MPC_Aspect, TBID_MPC_A_NORMAL
+                    ;Invoke SendMessage, hMPC_ToolbarScreen, TB_CHANGEBITMAP, IDC_MPC_Aspect, TBID_MPC_A_NORMAL
                 .ELSE
                     IFDEF DEBUG32
                     PrintText 'MFVideoARMode_PreservePixel or MFVideoARMode_PreservePicture failed'
                     ENDIF
                 .ENDIF
+            .ENDIF
+            
+        ;----------------------------------------------------------------------
+        ; Step 10 Seconds & Playback Speed
+        ;----------------------------------------------------------------------
+        .ELSEIF eax == IDM_MC_STEP10B || eax == IDM_CM_Step10B || eax == ACC_MC_STEP10B
+            Invoke MPSBStepPosition, hMediaPlayerSeekBar, 10, FALSE
+            
+        .ELSEIF eax == IDM_MC_STEP10F || eax == IDM_CM_Step10F || eax == ACC_MC_STEP10F
+            Invoke MPSBStepPosition, hMediaPlayerSeekBar, 10, TRUE
+            
+        .ELSEIF eax == IDM_MC_SLOWER || eax == IDM_SM_Slower || eax == ACC_MC_SLOWER
+            .IF pMI != 0
+                mov eax, dwCurrentRate
+                shr eax, 1 ; /2
+                Invoke MFPMediaPlayer_SetRate, pMP, eax
+            .ENDIF
+            
+        .ELSEIF eax == IDM_MC_FASTER || eax == IDM_SM_Faster || eax == ACC_MC_FASTER
+            .IF pMI != 0
+                mov eax, dwCurrentRate
+                shl eax, 1 ; x2
+                Invoke MFPMediaPlayer_SetRate, pMP, eax
             .ENDIF
             
         ;----------------------------------------------------------------------
@@ -205,7 +227,10 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
 			        Invoke MediaPlayerOpenFile, hMainWindow, Addr szMenuString
 				.ENDIF
 			.ENDIF
-
+            
+        .ELSEIF eax == IDM_MRU_CLEAR
+            Invoke IniMRUClearListFromMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_EXIT
+            
         .ENDIF
     
     ;--------------------------------------------------------------------------
@@ -218,6 +243,8 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
         .IF eax != 0
             Invoke MediaPlayerOpenFile, hMainWindow, Addr szDroppedFilename
         .ENDIF
+        Invoke DragFinish, hDrop
+        mov hDrop, 0
         mov eax, 0
         ret
 
@@ -303,7 +330,7 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
     
     .ELSEIF eax == WM_GETMINMAXINFO
         mov ebx, lParam
-        mov [ebx].MINMAXINFO.ptMinTrackSize.x, 630
+        mov [ebx].MINMAXINFO.ptMinTrackSize.x, 731 ;763 ;630
         mov [ebx].MINMAXINFO.ptMinTrackSize.y, 450
         mov eax, 0
         ret
@@ -350,6 +377,7 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
             Invoke MFPMediaPlayer_Free, Addr pMP
         .ENDIF
         Invoke IniSaveWindowPosition, hWin, Addr MediaPlayerIniFile
+        Invoke DragAcceptFiles, hWin, FALSE
         Invoke PostQuitMessage, NULL
         
     .ELSE
@@ -467,8 +495,14 @@ GUIPaintBackground PROC hWin:DWORD
     sub eax, ebx
     add eax, 20
     mov ypos, eax
-
-    Invoke DrawIconEx, hdcMem, xpos, ypos, hIcoMFPlayer, 0, 0, 0, NULL, DI_NORMAL
+    
+    .IF g_MediaType == 1
+        mov eax, hIcoMFPlayAudio
+    .ELSE
+        mov eax, hIcoMFPlayVideo
+    .ENDIF
+    
+    Invoke DrawIconEx, hdcMem, xpos, ypos, eax, 0, 0, 0, NULL, DI_NORMAL ; hIcoMFPlayer
     
     ;----------------------------------------------------------
     ; BitBlt from hdcMem back to hdc
@@ -499,6 +533,13 @@ GUIInit PROC hWin:DWORD
     mov hMainWindow, eax
     
     Invoke IniFilenameCreate, Addr MediaPlayerIniFile, NULL
+    IFDEF DEBUG32
+    Invoke lstrlen, Addr MediaPlayerIniFile
+    shl eax, 1
+    lea ebx, MediaPlayerIniFile
+    DbgDump ebx, eax
+    ENDIF
+    
     Invoke IniInit
     
     Invoke GetWindowLong, hWin, GWL_STYLE
@@ -507,14 +548,18 @@ GUIInit PROC hWin:DWORD
     Invoke GUISetTitleMediaLoaded, hWin, 0
     
     Invoke DragAcceptFiles, hWin, TRUE
+    Invoke GUIAllowDragDrop, TRUE
     
     ;--------------------------------------------------------------------------
     ; Load and set icons
     ;--------------------------------------------------------------------------
     Invoke SendMessage, hWin, WM_SETICON, ICON_BIG, hIcoMain
     Invoke SendMessage, hWin, WM_SETICON, ICON_SMALL, hIcoMain
-    Invoke LoadImage, hInstance, ICO_MFPLAYER, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    Invoke LoadImage, hInstance, ICO_MFPLAY_VIDEO, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
     mov hIcoMFPlayer, eax
+    mov hIcoMFPlayVideo, eax
+    Invoke LoadImage, hInstance, ICO_MFPLAY_AUDIO, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    mov hIcoMFPlayAudio, eax
     
     ;--------------------------------------------------------------------------
     ; Load pattern for background
@@ -537,7 +582,11 @@ GUIInit PROC hWin:DWORD
     
     Invoke LoadImage, hInstance, BMP_FILE_MRU, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
     mov hBmpFileMRU, eax
-    Invoke IniMRULoadListToMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_EXIT, hBmpFileMRU
+    
+    Invoke LoadImage, hInstance, BMP_FILE_MRU_CLEAR, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
+    mov hBmpFileMRUClear, eax
+    
+    Invoke IniMRULoadListToMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_EXIT, hBmpFileMRU, hBmpFileMRUClear
     
     ;--------------------------------------------------------------------------
     ; Set Fonts 
@@ -548,10 +597,10 @@ GUIInit PROC hWin:DWORD
     ;--------------------------------------------------------------------------
     ; MediaPlayerLabel
     ;--------------------------------------------------------------------------
-    Invoke MediaPlayerLabelCreate, hWin, 10, 555, 70, 26, IDC_MFP_Position, 0
+    Invoke MediaPlayerLabelCreate, hWin, 10, 555, 63, 26, IDC_MFP_Position, 0 ; 70
     mov hMFP_Position, eax
     
-    Invoke MediaPlayerLabelCreate, hWin, 782, 555, 70, 26, IDC_MFP_Duration, DT_RIGHT
+    Invoke MediaPlayerLabelCreate, hWin, 782, 555, 63, 26, IDC_MFP_Duration, DT_RIGHT
     mov hMFP_Duration, eax
     
     Invoke SendMessage, hMFP_Position, WM_SETFONT, hPosDurFont, TRUE
@@ -569,7 +618,6 @@ GUIInit PROC hWin:DWORD
     ;--------------------------------------------------------------------------
     Invoke MediaPlayerWindowCreate, hWin, 15, 20, 925, 630, IDC_MFPLAYER
     mov hMediaPlayerWindow, eax
-
     Invoke MFPMediaPlayer_Init, hMediaPlayerWindow, Addr MFP_OnMediaPlayerEvent, Addr pMP
     
     ;--------------------------------------------------------------------------
@@ -581,7 +629,9 @@ GUIInit PROC hWin:DWORD
     ;--------------------------------------------------------------------------
     ; MediaPlayerVolume
     ;--------------------------------------------------------------------------
-    Invoke MediaPlayerVolumeCreate, hMPC_ToolbarVolume, 38, 1, 118, 34, IDC_MPC_VolumeSlider, 8
+    ;hMPC_ToolbarControls
+    Invoke MediaPlayerVolumeCreate, hMPC_ToolbarControls, 344, 0, 118, 36, IDC_MPC_VolumeSlider, 8 ; 310
+    ;Invoke MediaPlayerVolumeCreate, hMPC_ToolbarVolume, 38, 1, 118, 34, IDC_MPC_VolumeSlider, 8
     mov hMPC_VolumeSlider, eax
     
     ;--------------------------------------------------------------------------
@@ -764,6 +814,48 @@ GUIResize PROC hWin:DWORD, wParam:DWORD, lParam:DWORD
 
     ret
 GUIResize ENDP
+
+;------------------------------------------------------------------------------
+; GUIAllowDragDrop
+; https://forum.pellesc.de/index.php?topic=5852.0
+; https://helgeklein.com/blog/how-to-enable-drag-and-drop-for-an-elevated-mfc-application-on-vistawindows-7/
+;------------------------------------------------------------------------------
+GUIAllowDragDrop PROC bAllow:DWORD
+    LOCAL VersionInformation:OSVERSIONINFO
+    LOCAL Version:DWORD
+    LOCAL hUser32:DWORD
+    
+    ; Determine what OS we are running on
+    mov VersionInformation.dwOSVersionInfoSize, SIZEOF OSVERSIONINFO
+    Invoke GetVersionEx, Addr VersionInformation
+    mov eax, VersionInformation.dwMajorVersion
+    mov Version, eax
+    
+    .IF Version < 6 ; Below Vista 
+        ret
+    .ENDIF
+    
+    Invoke LoadLibrary, Addr szUser32dll
+    .IF eax != NULL
+        mov hUser32, eax
+        Invoke GetProcAddress, hUser32, Addr szCMF
+        .IF eax != NULL
+            mov pChangeWindowMessageFilter, eax
+            .IF bAllow == TRUE
+                Invoke pChangeWindowMessageFilter, WM_DROPFILES, MSGFLT_ADD
+                Invoke pChangeWindowMessageFilter, WM_COPYDATA, MSGFLT_ADD
+                Invoke pChangeWindowMessageFilter, WM_COPYGLOBALDATA, MSGFLT_ADD
+            .ELSE
+                Invoke pChangeWindowMessageFilter, WM_DROPFILES, MSGFLT_REMOVE
+                Invoke pChangeWindowMessageFilter, WM_COPYDATA, MSGFLT_REMOVE
+                Invoke pChangeWindowMessageFilter, WM_COPYGLOBALDATA, MSGFLT_REMOVE
+            .ENDIF
+        .ENDIF
+        Invoke FreeLibrary, hUser32
+    .ENDIF
+    
+    ret
+GUIAllowDragDrop ENDP
 
 ;------------------------------------------------------------------------------
 ; GUISetDurationTime - Set text label showing duration of media item
@@ -1001,7 +1093,7 @@ MediaPlayerBrowseForFile PROC hWin:DWORD
         mov dwFiles, 0
     .ENDIF
     
-    Invoke FileOpenDialogA, NULL, NULL, NULL, NULL, 4, Addr FileSpecs, hWin, FALSE, Addr dwFiles, Addr lpszMediaFileName
+    Invoke FileOpenDialog, NULL, NULL, NULL, NULL, 4, Addr FileSpecs, hWin, FALSE, Addr dwFiles, Addr lpszMediaFileName
     .IF eax == TRUE
         .IF dwFiles != 0 && lpszMediaFileName != 0
             mov eax, TRUE
@@ -1028,7 +1120,7 @@ MediaPlayerOpenFile PROC hWin:DWORD, lpszMediaFile:DWORD
                 Invoke MFPMediaItem_Release, pMI
                 mov pMI, 0
             .ENDIF
-            Invoke MFPMediaPlayer_CreateMediaItemA, pMP, lpszMediaFile, 0, Addr pMI
+            Invoke MFPMediaPlayer_CreateMediaItem, pMP, lpszMediaFile, 0, Addr pMI
             .IF eax == TRUE
                 Invoke MFPMediaPlayer_SetMediaItem, pMP, pMI
                 Invoke SetFocus, hMediaPlayerWindow
@@ -1036,7 +1128,7 @@ MediaPlayerOpenFile PROC hWin:DWORD, lpszMediaFile:DWORD
                 
                 ; Update MRU
                 Invoke IniMRUEntrySaveFilename, hWin, lpszMediaFile, Addr MediaPlayerIniFile
-                Invoke IniMRUReloadListToMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_EXIT, hBmpFileMRU
+                Invoke IniMRUReloadListToMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_EXIT, hBmpFileMRU, hBmpFileMRUClear
                 
             .ELSE
                 Invoke GUISetTitleMediaLoaded, hWin, 0
@@ -1057,6 +1149,7 @@ MFP_OnMediaPlayerEvent PROC USES EBX lpThis:DWORD, pEventHeader:DWORD
     LOCAL pbFeature:DWORD
     LOCAL pbSelected:DWORD
     LOCAL pMediaItem:DWORD
+    LOCAL fRate:REAL4
     
     mov ebx, pEventHeader
     mov eax, [ebx].MFP_EVENT_HEADER.eEventType
@@ -1065,6 +1158,7 @@ MFP_OnMediaPlayerEvent PROC USES EBX lpThis:DWORD, pEventHeader:DWORD
         IFDEF DEBUG32
         PrintText 'MFP_EVENT_TYPE_PLAY'
         ENDIF
+        ;Invoke MFPMediaPlayer_SetRate, pMP, MFP_DEFAULT_RATE
         mov g_Playing, TRUE
         Invoke GUISetDurationTime, dwDurationTimeMS
         Invoke GUISetPositionTime, dwPositionTimeMS
@@ -1090,23 +1184,25 @@ MFP_OnMediaPlayerEvent PROC USES EBX lpThis:DWORD, pEventHeader:DWORD
     .ELSEIF eax == MFP_EVENT_TYPE_POSITION_SET
 
     .ELSEIF eax == MFP_EVENT_TYPE_RATE_SET
+        IFDEF DEBUG32
+        PrintText 'MFP_EVENT_TYPE_RATE_SET'
+        ENDIF
+        mov ebx, pEventHeader
+        mov eax, [ebx].MFP_RATE_SET_EVENT.flRate
+        mov dword ptr fRate, eax
+        finit
+        fwait
+        fld real4 ptr fRate
+        fmul MFP_MUL1000
+        fistp dword ptr dwCurrentRate
+        IFDEF DEBUG32
+        PrintDec dwCurrentRate
+        ENDIF
 
     .ELSEIF eax == MFP_EVENT_TYPE_MEDIAITEM_CREATED
         IFDEF DEBUG32
         PrintText 'MFP_EVENT_TYPE_MEDIAITEM_CREATED'
         ENDIF
-        mov ebx, pEventHeader
-        mov eax, [ebx].MFP_MEDIAITEM_CREATED_EVENT.pMediaItem
-        mov pMediaItem, eax
-        Invoke MFPMediaItem_HasVideo, pMediaItem, Addr pbFeature, Addr pbSelected
-        .IF eax == FALSE || pbFeature == FALSE
-            Invoke MFPMediaItem_HasAudio, pMediaItem, Addr pbFeature, Addr pbSelected
-            .IF eax == TRUE && pbFeature == TRUE ; just an audio track
-                IFDEF DEBUG32
-                PrintText 'Audio Track Loaded'
-                ENDIF
-            .ENDIF
-        .ENDIF
 
     .ELSEIF eax == MFP_EVENT_TYPE_MEDIAITEM_SET
         IFDEF DEBUG32
@@ -1120,8 +1216,17 @@ MFP_OnMediaPlayerEvent PROC USES EBX lpThis:DWORD, pEventHeader:DWORD
             Invoke MFPMediaItem_HasAudio, pMediaItem, Addr pbFeature, Addr pbSelected
             .IF eax == TRUE && pbFeature == TRUE ; just an audio track
                 IFDEF DEBUG32
-                PrintText 'Audio Track Loaded '
+                PrintText 'Audio Track Loaded'
                 ENDIF
+                .IF g_MediaType == 0
+                    mov g_MediaType, 1
+                    Invoke InvalidateRect, hMainWindow, NULL, TRUE
+                .ENDIF
+            .ENDIF
+        .ELSE
+            .IF g_MediaType == 1
+                mov g_MediaType, 0
+                Invoke InvalidateRect, hMainWindow, NULL, TRUE
             .ENDIF
         .ENDIF
         
@@ -1136,6 +1241,14 @@ MFP_OnMediaPlayerEvent PROC USES EBX lpThis:DWORD, pEventHeader:DWORD
             Invoke GUISetDurationTime, -1
             Invoke GUISetPositionTime, -1
         .ENDIF
+        
+        Invoke MFPMediaPlayer_GetSupportedRates, pMP, TRUE, Addr dwSlowestRate, Addr dwFastestRate
+        IFDEF DEBUG32
+        PrintDec dwSlowestRate
+        PrintDec dwFastestRate
+        ENDIF
+        mov dwCurrentRate, MFP_DEFAULT_RATE
+        
         Invoke MFPMediaPlayer_Play, pMP
 
     .ELSEIF eax == MFP_EVENT_TYPE_FRAME_STEP
@@ -1175,54 +1288,26 @@ MFP_OnMediaPlayerEvent ENDP
 ;------------------------------------------------------------------------------
 GUIPositionUpdate PROC dwPositionMS:DWORD, lParam:DWORD
     Invoke GUISetPositionTime, dwPositionMS
+    mov eax, dwPositionMS
+    mov dwPositionTimeMS, eax
     ret
 GUIPositionUpdate ENDP
 
 ;------------------------------------------------------------------------------
 ; MFP_JustFnameExt - Strip filepath name to just filename with extension.
 ;------------------------------------------------------------------------------
-MFP_JustFnameExt PROC USES ESI EDI szFilePathName:DWORD, szFileName:DWORD
-    LOCAL LenFilePathName:DWORD
-    LOCAL nPosition:DWORD
-    
-    Invoke lstrlen, szFilePathName
-    mov LenFilePathName, eax
-    mov nPosition, eax
-    
-    .IF LenFilePathName == 0
-        mov edi, szFileName
-        mov byte ptr [edi], 0
+MFP_JustFnameExt PROC szFilePathName:DWORD, szFileName:DWORD
+
+    .IF szFilePathName == 0 || szFileName == 0
         mov eax, FALSE
         ret
     .ENDIF
     
-    mov esi, szFilePathName
-    add esi, eax
-    
-    mov eax, nPosition
-    .WHILE eax != 0
-        movzx eax, byte ptr [esi]
-        .IF al == '\' || al == ':' || al == '/'
-            inc esi
-            .BREAK
-        .ENDIF
-        dec esi
-        dec nPosition
-        mov eax, nPosition
-    .ENDW
-    mov edi, szFileName
-    mov eax, nPosition
-    .WHILE eax != LenFilePathName
-        movzx eax, byte ptr [esi]
-        mov byte ptr [edi], al
-        inc edi
-        inc esi
-        inc nPosition
-        mov eax, nPosition
-    .ENDW
-    mov byte ptr [edi], 0h ; null out filename
+    Invoke lstrcpy, szFileName, szFilePathName
+    Invoke PathStripPath, szFileName
     
     mov eax, TRUE
+
     ret
 MFP_JustFnameExt ENDP
 
@@ -1429,7 +1514,11 @@ ENDIF
 ; CmdLineProcess - has user passed a file at the command line 
 ;------------------------------------------------------------------------------
 CmdLineProcess PROC
+    IFDEF __UNICODE__
+    Invoke Arg_GetCommandLineExW, 1, Addr CmdLineFilename
+    ELSE
     Invoke getcl_ex, 1, Addr CmdLineFilename
+    ENDIF
     .IF eax == 1
         mov CmdLineProcessFileFlag, 1 ; filename specified, attempt to open it
     .ELSE
@@ -1437,6 +1526,286 @@ CmdLineProcess PROC
     .ENDIF
     ret
 CmdLineProcess endp
+
+IFDEF __UNICODE__
+;------------------------------------------------------------------------------
+; MFP_ConvertStringToWide
+;
+; Converts a Ansi string to an Wide/Unicode string.
+;
+; Parameters:
+; 
+; * lpszAnsiString - pointer to an Ansi string to convert to a Wide string.
+; 
+; Returns:
+; 
+; A pointer to the Wide string if successful, or NULL otherwise.
+; 
+; Notes:
+;
+; The string that is converted should be freed when it is no longer needed with 
+; a call to the _MFP_ConvertStringFree function.
+;
+; See Also:
+;
+; MFP_ConvertStringToAnsi, MFP_ConvertStringFree
+; 
+;------------------------------------------------------------------------------
+MFP_ConvertStringToWide PROC lpszAnsiString:DWORD
+    LOCAL dwWideStringSize:DWORD
+    LOCAL lpszWideString:DWORD
+    
+    .IF lpszAnsiString == NULL
+        mov eax, NULL
+        ret
+    .ENDIF
+    Invoke MultiByteToWideChar, CP_UTF8, 0, lpszAnsiString, -1, NULL, 0
+    .IF eax == 0
+        ret
+    .ENDIF
+    mov dwWideStringSize, eax
+    shl eax, 1 ; x2 to get non wide char count
+    add eax, 4 ; add 4 for good luck and nulls
+    Invoke GlobalAlloc, GMEM_FIXED or GMEM_ZEROINIT, eax
+    .IF eax == NULL
+        ret
+    .ENDIF
+    mov lpszWideString, eax
+    Invoke MultiByteToWideChar, CP_UTF8, 0, lpszAnsiString, -1, lpszWideString, dwWideStringSize
+    .IF eax == 0
+        ret
+    .ENDIF
+    mov eax, lpszWideString
+    ret
+MFP_ConvertStringToWide ENDP
+
+;------------------------------------------------------------------------------
+; MFP_ConvertStringFree
+;
+; Frees a string created by MFP_ConvertStringToWide or
+; MFP_ConvertStringToAnsi
+;
+; Parameters:
+; 
+; * lpString - pointer to a converted string to free.
+; 
+; Returns:
+; 
+; None.
+; 
+; See Also:
+;
+; MFP_ConvertStringToWide, MFP_ConvertStringToAnsi
+; 
+;------------------------------------------------------------------------------
+MFP_ConvertStringFree PROC lpString:DWORD
+    mov eax, lpString
+    .IF eax == NULL
+        mov eax, FALSE
+        ret
+    .ENDIF
+    Invoke GlobalFree, eax
+    mov eax, TRUE
+    ret
+MFP_ConvertStringFree ENDP
+
+;------------------------------------------------------------------------------
+; Arg_GetArgumentW
+;
+; Return the contents of an argument from an argument list by its number.
+;
+; Parameters:
+; 
+; * lpszArgumentList - The address of the zero terminated argument list.
+; 
+; * lpszDestination - The address of the destination buffer.
+; 
+; * nArgument - The number of the argument to return.
+;
+; * dwArgumentListReadOffset - The next read offset in the source address.
+; 
+; Returns:
+; 
+; The return value is the updated next read offset in the source if it is 
+; greater than zero.
+;
+; The three possible return values are:
+;   > 1 = The next read offset in the source.
+;   0   = The end of the argument list has been reached.
+;   -1  = A non matching quotation error has occurred in the source.
+; 
+; Notes:
+;
+; This function supports double quoted text and it is delimited by the space 
+; character, a tab or a comma or any combination of these three. It may be used
+; in two separate modes, single argument mode and streaming mode.
+;
+; In separate argument mode you specify the argument you wish to obtain with 
+; the nArgument parameter and you set the qwArgumentListReadOffset parameter to 
+; zero.
+;
+; In streaming mode you set a variable to zero and pass it as the 4th parameter 
+; qwArgumentListReadOffset and save the RAX return value back into this variable 
+; for the next call to the function. The nArgument parameter in streaming mode 
+; should be set to one "1"
+;
+; To support the notation of an empty pair of double quotes in an argument list 
+; the parser in this algorithm return an empty destination buffer that has an 
+; ascii zero as it first character.
+;
+; See Also:
+;
+; Arg_GetCommandLineW, Arg_GetCommandLineExW
+; 
+;------------------------------------------------------------------------------
+Arg_GetArgumentW PROC USES EBX ECX EDX EDI ESI lpszArgumentList:DWORD, lpszDestination:DWORD, nArgument:DWORD
+
+    mov esi, lpszArgumentList
+    mov ecx, 1
+    xor eax, eax
+
+    mov edx, lpszDestination
+    mov WORD PTR [edx], 0
+
+  ; ------------------------------------
+  ; handle src as pointer to NULL string
+  ; ------------------------------------
+    cmp WORD PTR [esi], 0
+    jne next1
+    jmp bailout
+  next1:
+    sub esi, 2
+
+  ftrim:
+    add esi, 2
+    mov ax, WORD PTR [esi]
+    cmp ax, 32
+    je ftrim
+    cmp ax, 9
+    je ftrim
+    cmp ax, 0
+    je bailout                  ; exit on empty string (only white space)
+
+    cmp WORD PTR [esi], 34
+    je quoted
+
+    sub esi, 2
+
+  ; ----------------------------
+
+  unquoted:
+    add esi, 2
+    mov ax, WORD PTR [esi]
+    test ax, ax
+    jz scanout
+    cmp ax, 32
+    je wordend
+    mov WORD PTR [edx], ax
+    add edx, 2
+    jmp unquoted
+
+  wordend:
+    cmp ecx, nArgument
+    je scanout
+    add ecx, 1
+    mov edx, lpszDestination
+    mov WORD PTR [edx], 0
+    jmp ftrim
+
+  ; ----------------------------
+
+  quoted:
+    add esi, 2
+    mov ax, WORD PTR [esi]
+    test ax, ax
+    jz scanout
+    cmp ax, 34
+    je quoteend
+    mov WORD PTR [edx], ax
+    add edx, 2
+    jmp quoted
+
+  quoteend:
+    add edi, 2
+    cmp ecx, nArgument
+    je scanout
+    add ecx, 1
+    mov edx, lpszDestination
+    mov WORD PTR [edx], 0
+    jmp ftrim
+
+  ; ----------------------------
+
+  scanout:
+    .if nArgument > ecx
+    bailout:                        ; error exit
+      mov edx, lpszDestination      ; reload dest address
+      mov WORD PTR [edx], 0         ; zero dest buffer
+      xor eax, eax                  ; zero return value
+      jmp quit
+    .else                           ; normal exit
+      mov WORD PTR [edx], 0         ; terminate output buffer
+      mov eax, ecx                  ; set the return value
+    .endif
+
+  quit:
+
+    ret
+Arg_GetArgumentW ENDP
+
+;------------------------------------------------------------------------------
+; Arg_GetCommandLineExW
+;
+; Extended version of Arg_GetCommandLine. This Arg_GetCommandLineEx function 
+; uses the Arg_GetArgument function to obtain the selected argument from a 
+; command line. It differs from the original version in that it will read a 
+; command line of any length and the arguments can be delimited by spaces, tabs, 
+; commas or any combination of the three.
+
+; It is also faster but as the Arg_GetArgument function is table driven, it is 
+; also larger.
+;
+; Parameters:
+; 
+; * nArgument - The argument number to return from a command line.
+; 
+; * lpszArgumentBuffer - The buffer to receive the selected argument.
+;
+; Returns:
+; 
+; There are three (3) possible return values:
+;   1 = successful operation
+;   2 = no argument exists at specified arg number
+;   3 = non matching quotation marks
+; 
+; See Also:
+;
+; Arg_GetCommandLineW, Arg_GetArgumentW
+; 
+;------------------------------------------------------------------------------
+Arg_GetCommandLineExW PROC USES ECX nArgument:DWORD, lpszArgumentBuffer:DWORD
+    LOCAL lpszArgsList:DWORD
+    
+    add nArgument, 1
+    
+    Invoke GetCommandLineW
+    mov lpszArgsList, eax
+    Invoke Arg_GetArgumentW, lpszArgsList, lpszArgumentBuffer, nArgument
+
+    .if eax >= 0
+      mov ecx, lpszArgumentBuffer
+      .if WORD PTR [ecx] != 0
+        mov eax, 1                      ; successful operation
+      .else
+        mov eax, 2                      ; no argument at specified number
+      .endif
+    .elseif eax == -1
+      mov eax, 3                        ; non matching quotation marks
+    .endif
+    
+    ret
+Arg_GetCommandLineExW ENDP
+ENDIF
 
 end start
 

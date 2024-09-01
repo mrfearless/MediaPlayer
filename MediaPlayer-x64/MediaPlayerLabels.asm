@@ -32,8 +32,15 @@ MPL_FS_TEXTCOLOR        EQU RGB(240,240,240)
 
 .DATA
 
+IFDEF __UNICODE__
+szMPLClass              DB 'M',0,'e',0,'d',0,'i',0,'a',0,'P',0,'l',0,'a',0,'y',0,'e',0,'r',0,'L',0,'a',0,'b',0,'e',0,'l',0     ; Class name for creating our MediaPlayerLabel control
+                        DB 0,0,0,0
+szMPLDefaultText        DB '-',0,'-',0,':',0,'-',0,'-',0
+                        DB 0,0,0,0
+ELSE
 szMPLClass              DB 'MediaPlayerLabel',0     ; Class name for creating our MediaPlayerLabel control
 szMPLDefaultText        DB "--:--",0
+ENDIF
 
 .CODE
 ;------------------------------------------------------------------------------

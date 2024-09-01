@@ -21,8 +21,12 @@ _MPWInit                    PROTO hWin:QWORD
 
 
 .DATA
+IFDEF __UNICODE__
+szMPWClass                  DB 'M',0,'e',0,'d',0,'i',0,'a',0,'P',0,'l',0,'a',0,'y',0,'e',0,'r',0,'W',0,'i',0,'n',0,'d',0,'o',0,'w',0
+                            DB 0,0,0,0
+ELSE
 szMPWClass                  DB 'MediaPlayerWindow',0
-
+ENDIF
 
 .CODE
 
@@ -69,7 +73,7 @@ MediaPlayerWindowRegister ENDP
 ;------------------------------------------------------------------------------
 ; MediaPlayerWindowCreate
 ;
-; Create the MediaPlayerWindow Control. Calls MPWRegister beforehand.
+; Create the MediaPlayerWindow Control. Calls MediaPlayerWindowRegister beforehand.
 ;
 ; Returns handle in rax of the newly created control.
 ;------------------------------------------------------------------------------
@@ -114,34 +118,35 @@ _MPWWndProc PROC FRAME USES RBX hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPAR
         ret    
 
     .ELSEIF eax == WM_NCDESTROY
+        Invoke DragAcceptFiles, hWin, FALSE
         mov rax, 0
         ret
 
-    .ELSEIF eax == WM_ERASEBKGND
-        mov rax, 1
-        ret
-
-    .ELSEIF eax == WM_PAINT
-        .IF pMP != 0 ;&& g_Playing == TRUE
-            Invoke BeginPaint, hWin, Addr ps
-            mov hdc, rax
-            Invoke MFPMediaPlayer_UpdateVideo, pMP
-            Invoke EndPaint, hWin, Addr ps
-            mov rax, 0
-            ret
-        .ENDIF
-    
-    .ELSEIF eax == WM_SIZE
-        .IF wParam == SIZE_RESTORED
-            .IF pMP != 0 ;&& g_Playing == TRUE 
-                Invoke BeginPaint, hWin, Addr ps
-                mov hdc, rax
-                Invoke MFPMediaPlayer_UpdateVideo, pMP
-                Invoke EndPaint, hWin, Addr ps
-                mov rax, 0
-                ret
-            .ENDIF
-        .ENDIF
+;    .ELSEIF eax == WM_ERASEBKGND
+;        mov rax, 1
+;        ret
+;
+;    .ELSEIF eax == WM_PAINT
+;        .IF pMP != 0 ;&& g_Playing == TRUE
+;            Invoke BeginPaint, hWin, Addr ps
+;            mov hdc, rax
+;            Invoke MFPMediaPlayer_UpdateVideo, pMP
+;            Invoke EndPaint, hWin, Addr ps
+;            mov rax, 0
+;            ret
+;        .ENDIF
+;    
+;    .ELSEIF eax == WM_SIZE
+;        .IF wParam == SIZE_RESTORED
+;            .IF pMP != 0 ;&& g_Playing == TRUE 
+;                Invoke BeginPaint, hWin, Addr ps
+;                mov hdc, rax
+;                Invoke MFPMediaPlayer_UpdateVideo, pMP
+;                Invoke EndPaint, hWin, Addr ps
+;                mov rax, 0
+;                ret
+;            .ENDIF
+;        .ENDIF
     
     ;--------------------------------------------------------------------------
     ; Drag and drop support
@@ -153,6 +158,8 @@ _MPWWndProc PROC FRAME USES RBX hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPAR
         .IF rax != 0
             Invoke MediaPlayerOpenFile, hMainWindow, Addr szDroppedFilename
         .ENDIF
+        Invoke DragFinish, hDrop
+        mov hDrop, 0
         mov rax, 0
         ret
     
