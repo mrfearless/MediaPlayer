@@ -180,10 +180,10 @@ _MPWWndProc PROC USES EBX hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                 Invoke DefWindowProc, hWin, uMsg, wParam, lParam
                 ret
             .ENDIF
-        .ELSEIF wParam == VK_F11
-            Invoke GUIToggleFullscreen, hMainWindow
-            mov eax, 0
-            ret
+;        .ELSEIF wParam == VK_F11
+;            Invoke GUIToggleFullscreen, hMainWindow
+;            mov eax, 0
+;            ret
         .ELSE
             Invoke DefWindowProc, hWin, uMsg, wParam, lParam
             ret

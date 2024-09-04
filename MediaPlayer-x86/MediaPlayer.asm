@@ -34,6 +34,7 @@ MP_PATTERN_BACKGROUND EQU 1 ; comment out to allow pattern backgrounds
 
 include MediaPlayer.inc
 
+include MediaPlayerStrings.asm  ; language strings
 include MediaPlayerIni.asm      ; ini file settings
 include MediaPlayerAbout.asm    ; About dialog box
 
@@ -43,7 +44,7 @@ include MediaPlayerLabels.asm   ; Label controls for position and duration
 include MediaPlayerVolume.asm   ; Volume Slider Control
 include MediaPlayerSeekBar.asm  ; Seek Bar Control
 include MediaPlayerControls.asm ; Toolbars & toolbar buttons for main MFPlay features
-
+;include MediaPlayerInfo.asm     ; Media Item Information
 
 .code
 
@@ -75,14 +76,14 @@ WinMain PROC hInst:HINSTANCE, hPrevInst:HINSTANCE, CmdLine:LPSTR, CmdShow:DWORD
     LOCAL msg:MSG
 
     mov wc.cbSize, SIZEOF WNDCLASSEX
-    mov wc.style, CS_DBLCLKS or CS_HREDRAW or CS_VREDRAW
+    mov wc.style, CS_HREDRAW or CS_VREDRAW ; CS_DBLCLKS or 
     mov wc.lpfnWndProc, Offset WndProc
     mov wc.cbClsExtra, NULL
     mov wc.cbWndExtra, DLGWINDOWEXTRA
     push hInst
     pop wc.hInstance
     mov wc.hbrBackground, NULL
-    mov wc.lpszMenuName, IDM_MENU
+    mov wc.lpszMenuName, NULL ; IDM_MENU
     mov wc.lpszClassName, Offset ClassName
     Invoke LoadIcon, hInstance, ICO_MAIN
     mov hIcoMain, eax
@@ -100,11 +101,11 @@ WinMain PROC hInst:HINSTANCE, hPrevInst:HINSTANCE, CmdLine:LPSTR, CmdShow:DWORD
         .BREAK .if !eax
         Invoke TranslateAccelerator, hWnd, hAcc, addr msg
         .IF eax == 0
-            Invoke IsDialogMessage, hWnd, addr msg
-            .IF eax == 0
+            ;Invoke IsDialogMessage, hWnd, addr msg
+            ;.IF eax == 0
                 Invoke TranslateMessage, addr msg
                 Invoke DispatchMessage, addr msg
-            .ENDIF
+            ;.ENDIF
         .ENDIF
     .ENDW
     mov eax, msg.wParam
@@ -118,54 +119,53 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
     
     mov eax, uMsg
     .IF eax == WM_INITDIALOG
+        push hWin
+        pop hWnd
         Invoke GUIInit, hWin
         
     .ELSEIF eax == WM_COMMAND
         mov eax, wParam
         and eax, 0FFFFh
-        .IF eax == IDM_FILE_EXIT
+        .IF eax == IDM_FILE_Exit || eax == ACC_FILE_EXIT
             Invoke SendMessage, hWin, WM_CLOSE, 0, 0
             
-        .ELSEIF eax == IDM_HELP_ABOUT
+        .ELSEIF eax == IDM_HELP_About
             Invoke DialogBoxParam, hInstance, IDD_AboutDlg, hWin, Addr MediaPlayerAboutDlgProc, NULL
         
-        .ELSEIF eax == IDM_FILE_OPEN || eax == IDM_CM_Open || eax == ACC_FILE_OPEN
+        .ELSEIF eax == IDM_FILE_Open || eax == ACC_FILE_OPEN
             Invoke MediaPlayerBrowseForFile, hMainWindow
             .IF eax == TRUE
                 Invoke MediaPlayerOpenFile, hMainWindow, lpszMediaFileName
             .ENDIF
             
-        .ELSEIF eax == IDM_CM_Stop || eax == IDM_MC_STOP || eax == ACC_MC_STOP
+        .ELSEIF eax == IDM_MC_Stop || eax == ACC_MC_STOP
             .IF pMI != 0
                 Invoke MFPMediaPlayer_Stop, pMP
             .ENDIF
             
-        .ELSEIF eax == IDM_CM_Pause || eax == IDM_MC_PAUSE
+        .ELSEIF eax == IDM_MC_Pause
             .IF pMI != 0
                 Invoke MFPMediaPlayer_Pause, pMP
                 Invoke SetFocus, hMediaPlayerWindow
             .ENDIF
             
-        .ELSEIF eax == IDM_CM_Play || eax == IDM_MC_PLAY || eax == ACC_MC_PLAY
+        .ELSEIF eax == IDM_MC_Play || eax == ACC_MC_PLAY
             .IF pMI != 0
                 Invoke MFPMediaPlayer_Play, pMP
             .ENDIF
             
-        .ELSEIF eax == IDM_CM_Step || eax == IDM_MC_STEP
+        .ELSEIF eax == IDM_MC_Step
             .IF pMI != 0
                 Invoke MFPMediaPlayer_Step, pMP
             .ENDIF
             
-        .ELSEIF eax == IDM_CM_Fullscreen || eax == IDM_MC_FULLSCREEN
+        .ELSEIF eax == IDM_MC_Fullscreen || eax == ACC_MC_FULLSCREEN
             Invoke GUIToggleFullscreen, hMainWindow
-        
-        .ELSEIF eax == IDM_CM_Exit || eax == ACC_FILE_EXIT
-            Invoke SendMessage, hWin, WM_CLOSE, 0, 0
             
         ;----------------------------------------------------------------------
         ; Set Aspect Ratio
         ;----------------------------------------------------------------------
-        .ELSEIF eax == IDM_AM_STRETCH
+        .ELSEIF eax == IDM_MC_VA_Stretch
             .IF pMP != 0
                 Invoke MFPMediaPlayer_SetAspectRatioMode, pMP, MFVideoARMode_None
                 .IF eax == TRUE
@@ -179,7 +179,7 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                 .ENDIF
             .ENDIF
             
-        .ELSEIF eax == IDM_AM_NORMAL
+        .ELSEIF eax == IDM_MC_VA_Normal
             .IF pMP != 0
                 Invoke MFPMediaPlayer_SetAspectRatioMode, pMP, (MFVideoARMode_PreservePixel or MFVideoARMode_PreservePicture)
                 .IF eax == TRUE
@@ -196,24 +196,63 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
         ;----------------------------------------------------------------------
         ; Step 10 Seconds & Playback Speed
         ;----------------------------------------------------------------------
-        .ELSEIF eax == IDM_MC_STEP10B || eax == IDM_CM_Step10B || eax == ACC_MC_STEP10B
+        .ELSEIF eax == IDM_MC_Step10B || eax == ACC_MC_STEP10B
             Invoke MPSBStepPosition, hMediaPlayerSeekBar, 10, FALSE
             
-        .ELSEIF eax == IDM_MC_STEP10F || eax == IDM_CM_Step10F || eax == ACC_MC_STEP10F
+        .ELSEIF eax == IDM_MC_Step10F || eax == ACC_MC_STEP10F
             Invoke MPSBStepPosition, hMediaPlayerSeekBar, 10, TRUE
             
-        .ELSEIF eax == IDM_MC_SLOWER || eax == IDM_SM_Slower || eax == ACC_MC_SLOWER
+        .ELSEIF eax == IDM_MC_PS_Slower || eax == ACC_MC_SLOWER
             .IF pMI != 0
                 mov eax, dwCurrentRate
                 shr eax, 1 ; /2
                 Invoke MFPMediaPlayer_SetRate, pMP, eax
             .ENDIF
             
-        .ELSEIF eax == IDM_MC_FASTER || eax == IDM_SM_Faster || eax == ACC_MC_FASTER
+        .ELSEIF eax == IDM_MC_PS_Faster || eax == ACC_MC_FASTER
             .IF pMI != 0
                 mov eax, dwCurrentRate
                 shl eax, 1 ; x2
                 Invoke MFPMediaPlayer_SetRate, pMP, eax
+            .ENDIF
+            
+        ;----------------------------------------------------------------------
+        ; Language Menu
+        ;----------------------------------------------------------------------
+        .ELSEIF eax == IDM_LANG_Default
+            .IF g_LangID != IDLANG_DEFAULT
+                mov g_LangID, IDLANG_DEFAULT
+                Invoke GUILanguageChange, hWin
+            .ENDIF
+            
+        .ELSEIF eax == IDM_LANG_English
+            .IF g_LangID != IDLANG_ENGLISH
+                mov g_LangID, IDLANG_ENGLISH
+                Invoke GUILanguageChange, hWin
+            .ENDIF
+            
+        .ELSEIF eax == IDM_LANG_French
+            .IF g_LangID != IDLANG_FRENCH
+                mov g_LangID, IDLANG_FRENCH
+                Invoke GUILanguageChange, hWin
+            .ENDIF
+            
+        .ELSEIF eax == IDM_LANG_German
+            .IF g_LangID != IDLANG_GERMAN
+                mov g_LangID, IDLANG_GERMAN
+                Invoke GUILanguageChange, hWin
+            .ENDIF
+            
+        .ELSEIF eax == IDM_LANG_Polish
+            .IF g_LangID != IDLANG_POLISH
+                mov g_LangID, IDLANG_POLISH
+                Invoke GUILanguageChange, hWin
+            .ENDIF
+            
+        .ELSEIF eax == IDM_LANG_Italian
+            .IF g_LangID != IDLANG_ITALIAN
+                mov g_LangID, IDLANG_ITALIAN
+                Invoke GUILanguageChange, hWin
             .ENDIF
             
         ;----------------------------------------------------------------------
@@ -229,7 +268,7 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
 			.ENDIF
             
         .ELSEIF eax == IDM_MRU_CLEAR
-            Invoke IniMRUClearListFromMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_EXIT
+            Invoke IniMRUClearListFromMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_Exit
             
         .ENDIF
     
@@ -256,7 +295,7 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
         Invoke GUIIsClickInArea, hWin, MP_AREA_LOGO, lParam
         .IF eax == TRUE
             .IF pMI != 0
-                Invoke MFPMediaPlayer_Play, pMP
+                Invoke MFPMediaPlayer_Toggle, pMP
             .ELSE    
                 Invoke MediaPlayerBrowseForFile, hMainWindow
                 .IF eax == TRUE
@@ -271,43 +310,43 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
     ;--------------------------------------------------------------------------
     ; Quick way to open a file is to double click background
     ;--------------------------------------------------------------------------
-    .ELSEIF eax == WM_LBUTTONDBLCLK
-        Invoke GUIIsClickInArea, hWin, MP_AREA_PLAYER, lParam
-        .IF eax == TRUE
-            Invoke MediaPlayerBrowseForFile, hMainWindow
-            .IF eax == TRUE
-                Invoke MediaPlayerOpenFile, hMainWindow, lpszMediaFileName
-            .ENDIF
-            Invoke SetFocus, hMediaPlayerWindow
-        .ENDIF
-        mov eax, 0
-        ret        
+;    .ELSEIF eax == WM_LBUTTONDBLCLK
+;        Invoke GUIIsClickInArea, hWin, MP_AREA_PLAYER, lParam
+;        .IF eax == TRUE
+;            Invoke MediaPlayerBrowseForFile, hMainWindow
+;            .IF eax == TRUE
+;                Invoke MediaPlayerOpenFile, hMainWindow, lpszMediaFileName
+;            .ENDIF
+;            Invoke SetFocus, hMediaPlayerWindow
+;        .ENDIF
+;        mov eax, 0
+;        ret        
     
     ;--------------------------------------------------------------------------
     ; Toggle Fullscreen
     ;--------------------------------------------------------------------------
-    .ELSEIF eax == WM_GETDLGCODE
-        mov eax, DLGC_WANTALLKEYS or DLGC_WANTARROWS
-        ret
-
-    .ELSEIF eax == WM_KEYDOWN
-        .IF wParam == VK_F11
-            Invoke GUIToggleFullscreen, hMainWindow
-            mov eax, 0
-            ret
-        .ELSEIF wParam == VK_ESCAPE
-            .IF g_Fullscreen == TRUE
-                Invoke GUIFullscreenExit, hMainWindow
-                mov eax, 0
-                ret
-            .ELSE
-                Invoke DefWindowProc, hWin, uMsg, wParam, lParam
-                ret
-            .ENDIF
-        .ELSE
-            Invoke DefWindowProc, hWin, uMsg, wParam, lParam
-            ret
-        .ENDIF
+;    .ELSEIF eax == WM_GETDLGCODE
+;        mov eax, DLGC_WANTALLKEYS or DLGC_WANTARROWS
+;        ret
+;
+;    .ELSEIF eax == WM_KEYDOWN
+;        .IF wParam == VK_F11
+;            Invoke GUIToggleFullscreen, hMainWindow
+;            mov eax, 0
+;            ret
+;        .ELSEIF wParam == VK_ESCAPE
+;            .IF g_Fullscreen == TRUE
+;                Invoke GUIFullscreenExit, hMainWindow
+;                mov eax, 0
+;                ret
+;            .ELSE
+;                Invoke DefWindowProc, hWin, uMsg, wParam, lParam
+;                ret
+;            .ENDIF
+;        .ELSE
+;            Invoke DefWindowProc, hWin, uMsg, wParam, lParam
+;            ret
+;        .ENDIF
 
     ;--------------------------------------------------------------------------
     ; Draw the background frame and logo
@@ -318,6 +357,7 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
     
     .ELSEIF eax == WM_PAINT
         Invoke GUIPaintBackground, hWin
+        mov eax, 0
         ret
     
     ;--------------------------------------------------------------------------
@@ -533,14 +573,7 @@ GUIInit PROC hWin:DWORD
     mov hMainWindow, eax
     
     Invoke IniFilenameCreate, Addr MediaPlayerIniFile, NULL
-    IFDEF DEBUG32
-    Invoke lstrlen, Addr MediaPlayerIniFile
-    shl eax, 1
-    lea ebx, MediaPlayerIniFile
-    DbgDump ebx, eax
-    ENDIF
-    
-    Invoke IniInit
+    Invoke IniInit, hWin, Addr MediaPlayerIniFile
     
     Invoke GetWindowLong, hWin, GWL_STYLE
     mov g_PrevStyle, eax
@@ -572,10 +605,15 @@ GUIInit PROC hWin:DWORD
     ENDIF
     
     ;--------------------------------------------------------------------------
+    ; Load language strings
+    ;--------------------------------------------------------------------------
+    Invoke MPStringsInit
+    
+    ;--------------------------------------------------------------------------
     ; Menus
     ;--------------------------------------------------------------------------
-    Invoke GetMenu, hWin
-    mov hMediaPlayerMainMenu, eax
+;    Invoke GetMenu, hWin
+;    mov hMediaPlayerMainMenu, eax
     
     Invoke MPMainMenuInit, hWin
     Invoke MPContextMenuInit, hWin
@@ -586,7 +624,7 @@ GUIInit PROC hWin:DWORD
     Invoke LoadImage, hInstance, BMP_FILE_MRU_CLEAR, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
     mov hBmpFileMRUClear, eax
     
-    Invoke IniMRULoadListToMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_EXIT, hBmpFileMRU, hBmpFileMRUClear
+    Invoke IniMRULoadListToMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_Exit, hBmpFileMRU, hBmpFileMRUClear
     
     ;--------------------------------------------------------------------------
     ; Set Fonts 
@@ -629,9 +667,7 @@ GUIInit PROC hWin:DWORD
     ;--------------------------------------------------------------------------
     ; MediaPlayerVolume
     ;--------------------------------------------------------------------------
-    ;hMPC_ToolbarControls
     Invoke MediaPlayerVolumeCreate, hMPC_ToolbarControls, 344, 0, 118, 36, IDC_MPC_VolumeSlider, 8 ; 310
-    ;Invoke MediaPlayerVolumeCreate, hMPC_ToolbarVolume, 38, 1, 118, 34, IDC_MPC_VolumeSlider, 8
     mov hMPC_VolumeSlider, eax
     
     ;--------------------------------------------------------------------------
@@ -1083,6 +1119,18 @@ GUIIsClickInArea PROC USES EBX hWin:DWORD, dwArea:DWORD, lParam:DWORD
 GUIIsClickInArea ENDP
 
 ;------------------------------------------------------------------------------
+; GUILanguageChange - Updates menus and strings when language changes
+;------------------------------------------------------------------------------
+GUILanguageChange PROC hWin:DWORD
+    Invoke MPMainMenuInit, hWin
+    Invoke MPContextMenuInit, hWin
+    Invoke MPStringsInit
+    Invoke IniMRULoadListToMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_Exit, hBmpFileMRU, hBmpFileMRUClear
+    Invoke IniSetLanguage, hWin, Addr MediaPlayerIniFile
+    ret
+GUILanguageChange ENDP
+
+;------------------------------------------------------------------------------
 ; MediaPlayerBrowseForFile
 ;------------------------------------------------------------------------------
 MediaPlayerBrowseForFile PROC hWin:DWORD
@@ -1128,7 +1176,7 @@ MediaPlayerOpenFile PROC hWin:DWORD, lpszMediaFile:DWORD
                 
                 ; Update MRU
                 Invoke IniMRUEntrySaveFilename, hWin, lpszMediaFile, Addr MediaPlayerIniFile
-                Invoke IniMRUReloadListToMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_EXIT, hBmpFileMRU, hBmpFileMRUClear
+                Invoke IniMRUReloadListToMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_Exit, hBmpFileMRU, hBmpFileMRUClear
                 
             .ELSE
                 Invoke GUISetTitleMediaLoaded, hWin, 0
@@ -1158,7 +1206,6 @@ MFP_OnMediaPlayerEvent PROC USES EBX lpThis:DWORD, pEventHeader:DWORD
         IFDEF DEBUG32
         PrintText 'MFP_EVENT_TYPE_PLAY'
         ENDIF
-        ;Invoke MFPMediaPlayer_SetRate, pMP, MFP_DEFAULT_RATE
         mov g_Playing, TRUE
         Invoke GUISetDurationTime, dwDurationTimeMS
         Invoke GUISetPositionTime, dwPositionTimeMS
@@ -1177,7 +1224,6 @@ MFP_OnMediaPlayerEvent PROC USES EBX lpThis:DWORD, pEventHeader:DWORD
         ENDIF
         mov g_Playing, FALSE
         mov dwPositionTimeMS, 0
-        ;Invoke MPSBSetPositionMS, hMediaPlayerSeekBar, 0
         Invoke MPSBStop, hMediaPlayerSeekBar
         Invoke MediaPlayerControlsUpdate, hMediaPlayerControls
 
@@ -1243,12 +1289,10 @@ MFP_OnMediaPlayerEvent PROC USES EBX lpThis:DWORD, pEventHeader:DWORD
         .ENDIF
         
         Invoke MFPMediaPlayer_GetSupportedRates, pMP, TRUE, Addr dwSlowestRate, Addr dwFastestRate
-        IFDEF DEBUG32
-        PrintDec dwSlowestRate
-        PrintDec dwFastestRate
-        ENDIF
         mov dwCurrentRate, MFP_DEFAULT_RATE
-        
+        IFDEF DEBUG32
+        Invoke MFI_GetInfo
+        ENDIF
         Invoke MFPMediaPlayer_Play, pMP
 
     .ELSEIF eax == MFP_EVENT_TYPE_FRAME_STEP

@@ -1,55 +1,73 @@
 #define IDM_MENU 10000
-#define IDM_FILE_OPEN 10001
-#define IDM_FILE_EXIT 10002
-#define IDM_CONTROLS 10050
-#define IDM_MC_STOP 10051
-#define IDM_MC_PAUSE 10052
-#define IDM_MC_PLAY 10053
-#define IDM_MC_STEP 10054
-#define IDM_STEP10B 10060
-#define IDM_MC_STEP10F 10061
-#define IDM_MC_FULLSCREEN 10055
-#define IDM_MC_ASPECT 10056
-#define IDM_AM_STRETCH 10201
-#define IDM_AM_LETTERBOX 10202
-#define IDM_MC_SPEED 10062
-#define IDM_MC_SLOWER 10063
-#define IDM_MC_FASTER 10064
-#define IDM_HELP_ABOUT 10102
+#define IDM_FILE_Open 10001
+#define IDM_FILE_Exit 10002
+#define IDM_MC_Stop 10021
+#define IDM_MC_Pause 10022
+#define IDM_MC_Play 10023
+#define IDM_MC_Step 10024
+#define IDM_MC_Step10B 10025
+#define IDM_MC_Step10F 10026
+#define IDM_MC_Fullscreen 10027
+#define IDM_MC_Aspect 10028
+#define IDM_MC_VA_Stretch 10029
+#define IDM_MC_VA_Normal 10030
+#define IDM_MC_Speed 10031
+#define IDM_MC_PS_Slower 10032
+#define IDM_MC_PS_Faster 10033
+#define IDM_LANG_Default 10050
+#define IDM_LANG_English 10051
+#define IDM_LANG_French 10052
+#define IDM_LANG_German 10053
+#define IDM_LANG_Polish 10054
+#define IDM_LANG_Italian 10055
+#define IDM_HELP_About 10102
+
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+
 IDM_MENU MENUEX
 BEGIN
   POPUP "&File"
   BEGIN
-    MENUITEM "&Open File...\tCtrl+O",IDM_FILE_OPEN
+    MENUITEM "&Open File...\tCtrl+O",IDM_FILE_Open
     MENUITEM "",,0x00000800
-    MENUITEM "E&xit\tAlt+F4",IDM_FILE_EXIT
+    MENUITEM "E&xit\tAlt+F4",IDM_FILE_Exit
   END
-  POPUP "&Media Controls",IDM_CONTROLS
+  POPUP "&Media Controls"
   BEGIN
-    MENUITEM "&Stop\tCtrl+S",IDM_MC_STOP
-    MENUITEM "Pause",IDM_MC_PAUSE
+    MENUITEM "&Stop\tCtrl+S",IDM_MC_Stop
+    MENUITEM "Pause",IDM_MC_Pause
     MENUITEM "",,0x00000800
-    MENUITEM "&Play\tCtrl+P",IDM_MC_PLAY
-    MENUITEM "Step",IDM_MC_STEP
+    MENUITEM "&Play\tCtrl+P",IDM_MC_Play
+    MENUITEM "Step",IDM_MC_Step
     MENUITEM "",,0x00000800
-    MENUITEM "Step Backward 10 Seconds\tCtrl+B",IDM_STEP10B
-    MENUITEM "Step Foreward 10 Seconds\tCtrl+F",IDM_MC_STEP10F
+    MENUITEM "Step Backward 10 Seconds\tCtrl+B",IDM_MC_Step10B
+    MENUITEM "Step Forward 10 Seconds\tCtrl+F",IDM_MC_Step10F
     MENUITEM "",,0x00000800
-    MENUITEM "&Fullscreen Toggle\tF11",IDM_MC_FULLSCREEN
-    POPUP "Video Aspect",IDM_MC_ASPECT
+    MENUITEM "Fullscreen Toggle\tF11",IDM_MC_Fullscreen
+    POPUP "Video Aspect",IDM_MC_Aspect
     BEGIN
-      MENUITEM "Stretch",IDM_AM_STRETCH
-      MENUITEM "Normal",IDM_AM_LETTERBOX
+      MENUITEM "Stretch",IDM_MC_VA_Stretch
+      MENUITEM "Normal",IDM_MC_VA_Normal
     END
     MENUITEM "",,0x00000800
-    POPUP "Playback Speed",IDM_MC_SPEED
+    POPUP "Playback Speed",IDM_MC_Speed
     BEGIN
-      MENUITEM "Slower\tCtrl+Left",IDM_MC_SLOWER
-      MENUITEM "Faster\tCtrl+Right",IDM_MC_FASTER
+      MENUITEM "Slower\tCtrl+Left",IDM_MC_PS_Slower
+      MENUITEM "Faster\tCtrl+Ins",IDM_MC_PS_Faster
     END
+  END
+  POPUP "&Language"
+  BEGIN
+    MENUITEM "Default",IDM_LANG_Default
+    MENUITEM "English",IDM_LANG_English
+    MENUITEM "Français",IDM_LANG_French
+    MENUITEM "Deutsch",IDM_LANG_German
+    MENUITEM "Polski",IDM_LANG_Polish
+    MENUITEM "Italiano",IDM_LANG_Italian
   END
   POPUP "&Help"
   BEGIN
-    MENUITEM "&About",IDM_HELP_ABOUT
+    MENUITEM "&About",IDM_HELP_About
   END
 END
+

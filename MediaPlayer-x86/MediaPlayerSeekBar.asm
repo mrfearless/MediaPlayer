@@ -20,6 +20,7 @@ MPSBGetPositionMS           PROTO hControl:DWORD
 MPSBStart                   PROTO hControl:DWORD
 MPSBStop                    PROTO hControl:DWORD
 MPSBStepPosition            PROTO hControl:DWORD, dwSeconds:DWORD, bForward:DWORD
+MPSBRefresh                 PROTO hControl:DWORD
 
 ; MediaPlayer Seek Bar Control Functions (Internal):
 _MPSBWndProc                PROTO hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
@@ -147,8 +148,8 @@ MediaPlayerSeekBarCreate PROC hWndParent:DWORD, xpos:DWORD, ypos:DWORD, dwWidth:
 
     mov eax, dwStyle
     mov dwNewStyle, eax
-    and eax, WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN
-    .IF eax != WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN
+    and eax, WS_CHILD or WS_TABSTOP or WS_VISIBLE or WS_CLIPCHILDREN
+    .IF eax != WS_CHILD or WS_TABSTOP or WS_VISIBLE or WS_CLIPCHILDREN
         or dwNewStyle, WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN
     .ENDIF
 
@@ -197,8 +198,9 @@ _MPSBWndProc PROC USES EBX hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
         ; Check if internal properties set
         Invoke GetWindowLong, hWin, @MPSB_Init
         .IF eax == TRUE ; Yes they are
-            Invoke _MPSBCalcPosWidth, hWin
-            Invoke InvalidateRect, hWin, NULL, TRUE
+            ;Invoke _MPSBCalcPosWidth, hWin
+            ;Invoke InvalidateRect, hWin, NULL, TRUE
+            Invoke MPSBRefresh, hWin
         .ENDIF
         mov eax, 0
         ret
@@ -262,8 +264,8 @@ _MPSBInit PROC hWin:DWORD
     ; get style and check it is our default at least
     Invoke GetWindowLong, hWin, GWL_STYLE
     mov dwStyle, eax
-    and eax, WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN
-    .IF eax != WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN
+    and eax, WS_CHILD or WS_TABSTOP or WS_VISIBLE or WS_CLIPCHILDREN
+    .IF eax != WS_CHILD or WS_TABSTOP or WS_VISIBLE or WS_CLIPCHILDREN
         mov eax, dwStyle
         or eax, WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN
         mov dwStyle, eax
@@ -746,7 +748,8 @@ _MPSBCalcPosWidth ENDP
 _MPSBTimerProc PROC lpParam:DWORD, TimerOrWaitFired:DWORD
     LOCAL TimerCallbackFunction:_MPSBTimerCallback_Ptr
     LOCAL TimerCallbackParam:DWORD
-    LOCAL dwPostionMS:DWORD
+    LOCAL dwDurationMS:DWORD
+    LOCAL dwPositionMS:DWORD
     
     ; lpParam is hControl
     
@@ -763,8 +766,10 @@ _MPSBTimerProc PROC lpParam:DWORD, TimerOrWaitFired:DWORD
         Invoke GetWindowLong, lpParam, @MPSB_MediaWindow
         Invoke IsWindow, eax
         .IF eax == TRUE
+            Invoke GetWindowLong, lpParam, @MPSB_DurationMS
+            mov dwDurationMS, eax
             Invoke _MPSBGetPosition, lpParam
-            mov dwPostionMS, eax
+            mov dwPositionMS, eax
             Invoke _MPSBCalcPosWidth, lpParam
             Invoke InvalidateRect, lpParam, NULL, TRUE
             Invoke UpdateWindow, lpParam
@@ -774,8 +779,18 @@ _MPSBTimerProc PROC lpParam:DWORD, TimerOrWaitFired:DWORD
                 Invoke GetWindowLong, lpParam, @MPSB_TimerCBParam
                 mov TimerCallbackParam, eax
                 ; Call callback function
-                Invoke TimerCallbackFunction, dwPostionMS, TimerCallbackParam
+                Invoke TimerCallbackFunction, dwPositionMS, TimerCallbackParam
             .ENDIF
+            
+            ; Added check for > duration issue
+            mov eax, dwPositionMS
+            .IF sdword ptr eax > dwDurationMS
+                Invoke MFPMediaPlayer_Stop, pMP
+                Invoke MPSBSetPositionMS, lpParam, 0
+                Invoke MPSBRefresh, lpParam
+                ret
+            .ENDIF
+            
         .ELSE
             Invoke SetWindowLong, lpParam, @MPSB_DurationMS, 0
             Invoke SetWindowLong, lpParam, @MPSB_PositionMS, 0
@@ -1091,15 +1106,19 @@ MPSBStop PROC hControl:DWORD
             .ENDIF
             
             ; Call the callback one last time to update anything
-            Invoke _MPSBTimerProc, hControl, 0
-;            Invoke GetWindowLong, hControl, @MPSB_TimerCB
-;            .IF eax != 0
-;                mov TimerCallbackFunction, eax
-;                Invoke GetWindowLong, hControl, @MPSB_TimerCBParam
-;                mov TimerCallbackParam, eax
-;                ; Call callback function
-;                Invoke TimerCallbackFunction, -1, TimerCallbackParam
-;            .ENDIF
+            ;Invoke _MPSBTimerProc, hControl, 0
+            Invoke GetWindowLong, hControl, @MPSB_TimerCB
+            .IF eax != 0
+                mov TimerCallbackFunction, eax
+                Invoke GetWindowLong, hControl, @MPSB_TimerCBParam
+                mov TimerCallbackParam, eax
+                ; Call callback function
+                Invoke TimerCallbackFunction, 0, TimerCallbackParam
+                
+                Invoke MPSBSetPositionMS, hControl, 0
+                Invoke MPSBRefresh, hControl
+                
+            .ENDIF
 
         .ELSE ; failed
             IFDEF DEBUG32
@@ -1115,6 +1134,7 @@ MPSBStop ENDP
 ; MPSBStepPosition
 ;------------------------------------------------------------------------------
 MPSBStepPosition PROC USES EBX hControl:DWORD, dwSeconds:DWORD, bForward:DWORD
+    LOCAL dwDurationMS:DWORD
     LOCAL dwPositionMS:DWORD
     LOCAL dwState:DWORD
     
@@ -1129,10 +1149,15 @@ MPSBStepPosition PROC USES EBX hControl:DWORD, dwSeconds:DWORD, bForward:DWORD
             .IF eax == MFP_MEDIAPLAYER_STATE_EMPTY || eax == MFP_MEDIAPLAYER_STATE_SHUTDOWN || eax == MFP_MEDIAPLAYER_STATE_STOPPED
                 ret
             .ENDIF
-        
-            Invoke GetWindowLong, hControl, @MPSB_PositionMS
-            mov dwPositionMS, eax
-        
+            
+            Invoke GetWindowLong, hControl, @MPSB_DurationMS
+            mov dwDurationMS, eax
+            ;Invoke GetWindowLong, hControl, @MPSB_PositionMS
+            ;mov dwPositionMS, eax
+            
+            ; Get current position rather than last reported one stored in @MPSB_PositionMS
+            Invoke MFPMediaPlayer_GetPosition, pMP, Addr dwPositionMS
+            
             mov eax, dwSeconds
             .IF eax == 0
                 mov eax, 10
@@ -1142,6 +1167,14 @@ MPSBStepPosition PROC USES EBX hControl:DWORD, dwSeconds:DWORD, bForward:DWORD
             mov ebx, dwPositionMS
             .IF bForward == TRUE
                 add ebx, eax
+                ; added check for > duration issue
+                mov eax, dwDurationMS
+                .IF sdword ptr ebx > eax
+                    Invoke MFPMediaPlayer_Stop, pMP
+                    Invoke MPSBSetPositionMS, hControl, 0
+                    Invoke MPSBRefresh, hControl
+                    ret
+                .ENDIF
             .ELSE
                 sub ebx, eax
                 .IF sdword ptr ebx < 0
@@ -1165,7 +1198,14 @@ MPSBStepPosition PROC USES EBX hControl:DWORD, dwSeconds:DWORD, bForward:DWORD
     ret
 MPSBStepPosition ENDP
 
-
+;------------------------------------------------------------------------------
+; MPSBRefresh
+;------------------------------------------------------------------------------
+MPSBRefresh PROC hControl:DWORD
+    Invoke _MPSBCalcPosWidth, hControl
+    Invoke InvalidateRect, hControl, NULL, TRUE
+    ret
+MPSBRefresh ENDP
 
 
 

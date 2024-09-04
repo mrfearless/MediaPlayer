@@ -181,10 +181,10 @@ _MPWWndProc PROC FRAME USES RBX hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPAR
                 Invoke DefWindowProc, hWin, uMsg, wParam, lParam
                 ret
             .ENDIF
-        .ELSEIF wParam == VK_F11
-            Invoke GUIToggleFullscreen, hMainWindow
-            mov rax, 0
-            ret
+;        .ELSEIF wParam == VK_F11
+;            Invoke GUIToggleFullscreen, hMainWindow
+;            mov rax, 0
+;            ret
         .ELSE
             Invoke DefWindowProc, hWin, uMsg, wParam, lParam
             ret

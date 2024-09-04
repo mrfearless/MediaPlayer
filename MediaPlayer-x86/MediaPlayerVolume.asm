@@ -129,8 +129,8 @@ MediaPlayerVolumeCreate PROC hWndParent:DWORD, xpos:DWORD, ypos:DWORD, dwWidth:D
 
     mov eax, dwStyle
     mov dwNewStyle, eax
-    and eax, WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN
-    .IF eax != WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN
+    and eax, WS_CHILD or WS_TABSTOP or WS_VISIBLE or WS_CLIPCHILDREN
+    .IF eax != WS_CHILD or WS_TABSTOP or WS_VISIBLE or WS_CLIPCHILDREN
         or dwNewStyle, WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN
     .ENDIF
 
@@ -240,10 +240,10 @@ _MPVInit PROC hWin:DWORD
     ;--------------------------------------------------------------------------
     Invoke GetWindowLong, hWin, GWL_STYLE
     mov dwStyle, eax
-    and eax, WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN
-    .IF eax != WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN
+    and eax, WS_CHILD or WS_TABSTOP or WS_VISIBLE or WS_CLIPCHILDREN
+    .IF eax != WS_CHILD or WS_TABSTOP or WS_VISIBLE or WS_CLIPCHILDREN
         mov eax, dwStyle
-        or eax, WS_CHILD or WS_VISIBLE or WS_CLIPCHILDREN
+        or eax, WS_CHILD or WS_TABSTOP or WS_VISIBLE or WS_CLIPCHILDREN
         mov dwStyle, eax
         Invoke SetWindowLong, hWin, GWL_STYLE, dwStyle
     .ENDIF

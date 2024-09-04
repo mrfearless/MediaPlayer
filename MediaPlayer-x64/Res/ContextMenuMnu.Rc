@@ -1,0 +1,50 @@
+#define IDM_CONTEXTMENU 11000
+#define IDM_FILE_Open 10001
+#define IDM_MC_Stop 10021
+#define IDM_MC_Pause 10022
+#define IDM_MC_Play 10023
+#define IDM_MC_Step 10024
+#define IDM_MC_Step10B 10025
+#define IDM_MC_Step10F 10026
+#define IDM_MC_Fullscreen 10027
+#define IDM_MC_Aspect 10028
+#define IDM_MC_VA_Stretch 10029
+#define IDM_MC_VA_Normal 10030
+#define IDM_MC_Speed 10031
+#define IDM_MC_PS_Slower 10032
+#define IDM_MC_PS_Faster 10033
+#define IDM_FILE_Exit 10002
+
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+
+IDM_CONTEXTMENU MENUEX
+BEGIN
+  POPUP "ContextMenu"
+  BEGIN
+    MENUITEM "&Open File...\tCtrl+O",IDM_FILE_Open
+    MENUITEM "",,0x00000800
+    MENUITEM "&Stop Playback\tCtrl+S",IDM_MC_Stop
+    MENUITEM "Pause Playback",IDM_MC_Pause
+    MENUITEM "",,0x00000800
+    MENUITEM "Start &Playing\tCtrl+P",IDM_MC_Play
+    MENUITEM "Frame Step",IDM_MC_Step
+    MENUITEM "",,0x00000800
+    MENUITEM "Step Backward 10 Seconds\tCtrl+B",IDM_MC_Step10B
+    MENUITEM "Step Forward 10 Seconds\tCtrl+F",IDM_MC_Step10F
+    MENUITEM "",,0x00000800
+    MENUITEM "Toggle Fullscreen\tF11",IDM_MC_Fullscreen
+    POPUP "Video Aspect",IDM_MC_Aspect
+    BEGIN
+      MENUITEM "Stretch",IDM_MC_VA_Stretch
+      MENUITEM "Normal",IDM_MC_VA_Normal
+    END
+    MENUITEM "",,0x00000800
+    POPUP "Playback Speed",IDM_MC_Speed
+    BEGIN
+      MENUITEM "Slower",IDM_MC_PS_Slower
+      MENUITEM "Faster",IDM_MC_PS_Faster
+    END
+    MENUITEM "",,0x00000800
+    MENUITEM "&Exit\tAlt+F4",IDM_FILE_Exit
+  END
+END

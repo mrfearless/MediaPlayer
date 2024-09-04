@@ -26,6 +26,7 @@ IDC_TxtVersion                  EQU 17005
 IFDEF __UNICODE__
 mrfearless_github               DB "h",0,"t",0,"t",0,"p",0,"s",0,":",0,"/",0,"/",0,"g",0,"i",0,"t",0,"h",0,"u",0,"b",0,".",0,"c",0,"o",0,"m",0
                                 DB "/",0,"m",0,"r",0,"f",0,"e",0,"a",0,"r",0,"l",0,"e",0,"s",0,"s",0
+                                DB "/",0,"M",0,"e",0,"d",0,"i",0,"a",0,"P",0,"l",0,"a",0,"y",0,"e",0,"r",0
                                 DB 0,0,0,0
 szShellOpen                     DB "o",0,"p",0,"e",0,"n",0
                                 DB 0,0,0,0
@@ -43,7 +44,7 @@ szAboutBoxInfoText              DB "M",0,"e",0,"d",0,"i",0,"a",0,"P",0,"l",0,"a"
                                 DB "p",0,"l",0,"a",0,"y",0,"b",0,"a",0,"c",0,"k",0," ",0,"a",0,"p",0,"p",0,"l",0,"i",0,"c",0,"a",0,"t",0,"i",0,"o",0,"n",0,"s",0,".",0
                                 DB 0,0,0,0
 ELSE
-mrfearless_github               DB "https://github.com/mrfearless",0
+mrfearless_github               DB "https://github.com/mrfearless/MediaPlayer",0
 szShellOpen                     DB "open",0
 szAboutBoxInfoText              DB "MediaPlayer uses the custom MFPlayer.lib library functions,",13,10
                                 DB "which wrap the methods of the MFPlay COM Objects: ",13,10

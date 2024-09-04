@@ -34,8 +34,8 @@ ICO_MPC_A_STRETCH       EQU 308
 ICO_MPC_A_NORMAL        EQU 309
 ICO_MPC_VOLUME          EQU 310
 ICO_MPC_MUTE            EQU 311
-ICO_MPC_STEPFORWARD10   EQU 312
-ICO_MPC_STEPBACKWARD10  EQU 313
+ICO_MPC_STEP10F         EQU 312
+ICO_MPC_STEP10B         EQU 313
 ICO_MPC_FASTER          EQU 314
 ICO_MPC_SLOWER          EQU 315
 
@@ -56,8 +56,8 @@ IDC_MPC_VolumeSlider    EQU 3011
 IDC_MPC_ToolbarScreen   EQU 3012
 IDC_MPC_Aspect          EQU 3013
 IDC_MPC_About           EQU 3014
-IDC_MPC_StepForward10   EQU 3015
-IDC_MPC_StepBackward10  EQU 3016
+IDC_MPC_Step10F         EQU 3015
+IDC_MPC_Step10B         EQU 3016
 IDC_MPC_Faster          EQU 3017
 IDC_MPC_Slower          EQU 3018
 
@@ -74,8 +74,8 @@ TBID_MPC_A_STRETCH      EQU 8
 TBID_MPC_A_NORMAL       EQU 9
 TBID_MPC_Volume         EQU 10
 TBID_MPC_Mute           EQU 11
-TBID_MPC_StepForward10  EQU 12
-TBID_MPC_StepBackward10 EQU 13
+TBID_MPC_Step10F        EQU 12
+TBID_MPC_Step10B        EQU 13
 TBID_MPC_Faster         EQU 14
 TBID_MPC_Slower         EQU 15
 
@@ -90,50 +90,50 @@ TB_FS_BACKCOLOR         EQU MAINWINDOW_FS_BACKCOLOR ; RGB(81,81,81)
 .DATA
 ; MediaPlayerControls Tooltips
 IFDEF __UNICODE__
-szTip_MPC_Open		    DB 'O',0,'p',0,'e',0,'n',0,' ',0,'a',0,' ',0,'m',0,'e',0,'d',0,'i',0,'a',0,' ',0,'f',0,'i',0,'l',0,'e',0,' ',0,'t',0,'o',0,' ',0
-                        DB 'p',0,'l',0,'a',0,'y',0
-                        DB 0,0,0,0
-szTip_MPC_Stop		    DB 'S',0,'t',0,'o',0,'p',0,' ',0,'P',0,'l',0,'a',0,'y',0,'b',0,'a',0,'c',0,'k',0
-                        DB 0,0,0,0
-szTip_MPC_Pause		    DB 'P',0,'a',0,'u',0,'s',0,'e',0,' ',0,'P',0,'l',0,'a',0,'y',0,'b',0,'a',0,'c',0,'k',0
-                        DB 0,0,0,0
-szTip_MPC_Play		    DB 'P',0,'l',0,'a',0,'y',0,'/',0,'P',0,'a',0,'u',0,'s',0,'e',0,' ',0,'T',0,'o',0,'g',0,'g',0,'l',0,'e',0
-                        DB 0,0,0,0
-szTip_MPC_Step		    DB 'F',0,'r',0,'a',0,'m',0,'e',0,' ',0,'S',0,'t',0,'e',0,'p',0
-                        DB 0,0,0,0
-szTip_MPC_Fullscreen	DB 'T',0,'o',0,'g',0,'g',0,'l',0,'e',0,' ',0,'F',0,'u',0,'l',0,'l',0,'s',0,'c',0,'r',0,'e',0,'e',0,'n',0
-                        DB 0,0,0,0
-szTip_MPC_Exit		    DB 'E',0,'x',0,'i',0,'t',0,' ',0,'A',0,'p',0,'p',0,'l',0,'i',0,'c',0,'a',0,'t',0,'i',0,'o',0,'n',0
-                        DB 0,0,0,0
-szTip_MPC_VolumeToggle  DB 'V',0,'o',0,'l',0,'u',0,'m',0,'e',0,' ',0,'M',0,'u',0,'t',0,'e',0,' ',0,'T',0,'o',0,'g',0,'g',0,'l',0,'e',0
-                        DB 0,0,0,0
-szTip_MPC_Aspect        DB 'V',0,'i',0,'d',0,'e',0,'o',0,' ',0,'A',0,'s',0,'p',0,'e',0,'c',0,'t',0
-                        DB 0,0,0,0
-szTip_MPC_About         DB 'A',0,'b',0,'o',0,'u',0,'t',0,' ',0,'M',0,'e',0,'d',0,'i',0,'a',0,'P',0,'l',0,'a',0,'y',0,'e',0,'r',0
-                        DB 0,0,0,0
-szTip_MPC_StepForward10 DB 'S',0,'t',0,'e',0,'p',0,' ',0,'F',0,'o',0,'r',0,'w',0,'a',0,'r',0,'d',0,' ',0,'1',0,'0',0,' ',0,'S',0,'e',0,'c',0,'o',0,'n',0,'d',0,'s',0
-                        DB 0,0,0,0
-szTip_MPC_StepBackward10 DB 'S',0,'t',0,'e',0,'p',0,' ',0,'B',0,'a',0,'c',0,'k',0,'w',0,'a',0,'r',0,'d',0,' ',0,'1',0,'0',0,' ',0,'S',0,'e',0,'c',0,'o',0,'n',0,'d',0,'s',0
-                        DB 0,0,0,0
-szTip_MPC_Faster        DB 'F',0,'a',0,'s',0,'t',0,'e',0,'r',0,' ',0,'P',0,'l',0,'a',0,'y',0,' ',0,'S',0,'p',0,'e',0,'e',0,'d',0
-                        DB 0,0,0,0
-szTip_MPC_Slower        DB 'S',0,'l',0,'o',0,'w',0,'e',0,'r',0,' ',0,'P',0,'l',0,'a',0,'y',0,' ',0,'S',0,'p',0,'e',0,'e',0,'d',0
-                        DB 0,0,0,0
+;szTip_MPC_Open		    DB 'O',0,'p',0,'e',0,'n',0,' ',0,'a',0,' ',0,'m',0,'e',0,'d',0,'i',0,'a',0,' ',0,'f',0,'i',0,'l',0,'e',0,' ',0,'t',0,'o',0,' ',0
+;                        DB 'p',0,'l',0,'a',0,'y',0
+;                        DB 0,0,0,0
+;szTip_MPC_Stop		    DB 'S',0,'t',0,'o',0,'p',0,' ',0,'P',0,'l',0,'a',0,'y',0,'b',0,'a',0,'c',0,'k',0
+;                        DB 0,0,0,0
+;szTip_MPC_Pause		    DB 'P',0,'a',0,'u',0,'s',0,'e',0,' ',0,'P',0,'l',0,'a',0,'y',0,'b',0,'a',0,'c',0,'k',0
+;                        DB 0,0,0,0
+;szTip_MPC_Play		    DB 'P',0,'l',0,'a',0,'y',0,'/',0,'P',0,'a',0,'u',0,'s',0,'e',0,' ',0,'T',0,'o',0,'g',0,'g',0,'l',0,'e',0
+;                        DB 0,0,0,0
+;szTip_MPC_Step		    DB 'F',0,'r',0,'a',0,'m',0,'e',0,' ',0,'S',0,'t',0,'e',0,'p',0
+;                        DB 0,0,0,0
+;szTip_MPC_Fullscreen	DB 'T',0,'o',0,'g',0,'g',0,'l',0,'e',0,' ',0,'F',0,'u',0,'l',0,'l',0,'s',0,'c',0,'r',0,'e',0,'e',0,'n',0
+;                        DB 0,0,0,0
+;szTip_MPC_Exit		    DB 'E',0,'x',0,'i',0,'t',0,' ',0,'A',0,'p',0,'p',0,'l',0,'i',0,'c',0,'a',0,'t',0,'i',0,'o',0,'n',0
+;                        DB 0,0,0,0
+;szTip_MPC_VolumeToggle  DB 'V',0,'o',0,'l',0,'u',0,'m',0,'e',0,' ',0,'M',0,'u',0,'t',0,'e',0,' ',0,'T',0,'o',0,'g',0,'g',0,'l',0,'e',0
+;                        DB 0,0,0,0
+;szTip_MPC_Aspect        DB 'V',0,'i',0,'d',0,'e',0,'o',0,' ',0,'A',0,'s',0,'p',0,'e',0,'c',0,'t',0
+;                        DB 0,0,0,0
+;szTip_MPC_About         DB 'A',0,'b',0,'o',0,'u',0,'t',0,' ',0,'M',0,'e',0,'d',0,'i',0,'a',0,'P',0,'l',0,'a',0,'y',0,'e',0,'r',0
+;                        DB 0,0,0,0
+;szTip_MPC_Step10F DB 'S',0,'t',0,'e',0,'p',0,' ',0,'F',0,'o',0,'r',0,'w',0,'a',0,'r',0,'d',0,' ',0,'1',0,'0',0,' ',0,'S',0,'e',0,'c',0,'o',0,'n',0,'d',0,'s',0
+;                        DB 0,0,0,0
+;szTip_MPC_Step10B DB 'S',0,'t',0,'e',0,'p',0,' ',0,'B',0,'a',0,'c',0,'k',0,'w',0,'a',0,'r',0,'d',0,' ',0,'1',0,'0',0,' ',0,'S',0,'e',0,'c',0,'o',0,'n',0,'d',0,'s',0
+;                        DB 0,0,0,0
+;szTip_MPC_Faster        DB 'F',0,'a',0,'s',0,'t',0,'e',0,'r',0,' ',0,'P',0,'l',0,'a',0,'y',0,' ',0,'S',0,'p',0,'e',0,'e',0,'d',0
+;                        DB 0,0,0,0
+;szTip_MPC_Slower        DB 'S',0,'l',0,'o',0,'w',0,'e',0,'r',0,' ',0,'P',0,'l',0,'a',0,'y',0,' ',0,'S',0,'p',0,'e',0,'e',0,'d',0
+;                        DB 0,0,0,0
 ELSE
-szTip_MPC_Open		    DB 'Open a media file to play',0
-szTip_MPC_Stop		    DB 'Stop Playback',0
-szTip_MPC_Pause		    DB 'Pause Playback',0
-szTip_MPC_Play		    DB 'Play/Pause Toggle',0
-szTip_MPC_Step		    DB 'Frame Step',0
-szTip_MPC_Fullscreen	DB 'Toggle Fullscreen',0
-szTip_MPC_Exit		    DB 'Exit Application',0
-szTip_MPC_VolumeToggle  DB 'Volume Mute Toggle',0
-szTip_MPC_Aspect        DB 'Video Aspect',0
-szTip_MPC_About         DB 'About MediaPlayer',0
-szTip_MPC_StepForward10 DB 'Step Forward 10 Seconds',0
-szTip_MPC_StepBackward10 DB 'Step Backward 10 Seconds',0
-szTip_MPC_Faster        DB 'Faster Play Speed',0
-szTip_MPC_Slower        DB 'Slower Play Speed',0
+;szTip_MPC_Open		    DB 'Open a media file to play',0
+;szTip_MPC_Stop		    DB 'Stop Playback',0
+;szTip_MPC_Pause		    DB 'Pause Playback',0
+;szTip_MPC_Play		    DB 'Play/Pause Toggle',0
+;szTip_MPC_Step		    DB 'Frame Step',0
+;szTip_MPC_Fullscreen	DB 'Toggle Fullscreen',0
+;szTip_MPC_Exit		    DB 'Exit Application',0
+;szTip_MPC_VolumeToggle  DB 'Volume Mute Toggle',0
+;szTip_MPC_Aspect        DB 'Video Aspect',0
+;szTip_MPC_About         DB 'About MediaPlayer',0
+;szTip_MPC_Step10F DB 'Step Forward 10 Seconds',0
+;szTip_MPC_Step10B DB 'Step Backward 10 Seconds',0
+;szTip_MPC_Faster        DB 'Faster Play Speed',0
+;szTip_MPC_Slower        DB 'Slower Play Speed',0
 
 ENDIF
 
@@ -220,10 +220,10 @@ MediaPlayerControlsProc PROC USES EBX hWin:HWND, uMsg:UINT, wParam:WPARAM, lPara
         .ELSEIF eax == IDC_MPC_Exit
             Invoke SendMessage, hMainWindow, WM_CLOSE, 0, 0
             
-        .ELSEIF eax == IDC_MPC_StepForward10
+        .ELSEIF eax == IDC_MPC_Step10F
             Invoke MPSBStepPosition, hMediaPlayerSeekBar, 10, TRUE
             
-        .ELSEIF eax == IDC_MPC_StepBackward10
+        .ELSEIF eax == IDC_MPC_Step10B
             Invoke MPSBStepPosition, hMediaPlayerSeekBar, 10, FALSE
             
         .ELSEIF eax == IDC_MPC_Faster
@@ -271,10 +271,10 @@ MediaPlayerControlsProc PROC USES EBX hWin:HWND, uMsg:UINT, wParam:WPARAM, lPara
                 lea eax, szTip_MPC_Aspect
             .ELSEIF eax == IDC_MPC_About
                 lea eax, szTip_MPC_About
-            .ELSEIF eax == IDC_MPC_StepForward10
-                lea eax, szTip_MPC_StepForward10
-            .ELSEIF eax == IDC_MPC_StepBackward10
-                lea eax, szTip_MPC_StepBackward10
+            .ELSEIF eax == IDC_MPC_Step10F
+                lea eax, szTip_MPC_Step10F
+            .ELSEIF eax == IDC_MPC_Step10B
+                lea eax, szTip_MPC_Step10B
             .ELSEIF eax == IDC_MPC_Faster
                 lea eax, szTip_MPC_Faster
             .ELSEIF eax == IDC_MPC_Slower
@@ -410,11 +410,11 @@ _MPCInit PROC USES EBX hWin:DWORD
     mov hIcon, eax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
-    Invoke LoadImage, hInstance, ICO_MPC_STEPFORWARD10, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    Invoke LoadImage, hInstance, ICO_MPC_STEP10F, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
     mov hIcon, eax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
-    Invoke LoadImage, hInstance, ICO_MPC_STEPBACKWARD10, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    Invoke LoadImage, hInstance, ICO_MPC_STEP10B, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
     mov hIcon, eax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
@@ -474,13 +474,13 @@ _MPCInit PROC USES EBX hWin:DWORD
 	mov tbb.fsStyle, TBSTYLE_BUTTON
 	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
 	
-	mov tbb.iBitmap, TBID_MPC_StepBackward10
-	mov tbb.idCommand, IDC_MPC_StepBackward10
+	mov tbb.iBitmap, TBID_MPC_Step10B
+	mov tbb.idCommand, IDC_MPC_Step10B
 	mov tbb.fsStyle, TBSTYLE_BUTTON
 	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
 
-	mov tbb.iBitmap, TBID_MPC_StepForward10
-	mov tbb.idCommand, IDC_MPC_StepForward10
+	mov tbb.iBitmap, TBID_MPC_Step10F
+	mov tbb.idCommand, IDC_MPC_Step10F
 	mov tbb.fsStyle, TBSTYLE_BUTTON
 	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
 	;256 ;326

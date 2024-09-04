@@ -47,6 +47,9 @@ RGB MACRO red:REQ, green:REQ, blue:REQ
     EXITM < red or green shl 8 or blue shl 16 >
 ENDM
 
+MAKELANGID MACRO usPrimaryLanguage:REQ, usSubLanguage:REQ
+    EXITM < (usSubLanguage SHL 10) OR (usPrimaryLanguage) >
+ENDM
 
 ;------------------------------------------------------------------------------
 ; MFPlayerTest Prototypes
@@ -62,12 +65,16 @@ GUIAllowDragDrop            PROTO bAllow:DWORD
 
 GUISetDurationTime          PROTO dwMilliseconds:DWORD
 GUISetPositionTime          PROTO dwMilliseconds:DWORD
+GUIPositionUpdate           PROTO dwPositionMS:DWORD, lParam:DWORD
 GUISetTitleMediaLoaded      PROTO hWin:DWORD, lpszMediaLoaded:DWORD
+
 GUIToggleFullscreen         PROTO hWin:DWORD
 GUIFullscreenEnter          PROTO hWin:DWORD
 GUIFullscreenExit           PROTO hWin:DWORD
-GUIPositionUpdate           PROTO dwPositionMS:DWORD, lParam:DWORD
+
 GUIIsClickInArea            PROTO hWin:DWORD, dwArea:DWORD, lParam:DWORD
+
+GUILanguageChange           PROTO hWin:DWORD
 
 MediaPlayerBrowseForFile    PROTO hWin:DWORD
 MediaPlayerOpenFile         PROTO hWin:DWORD, lpszMediaFile:DWORD
@@ -178,6 +185,7 @@ ACC_MC_STEP10F			EQU 905
 ACC_MC_STEP10B			EQU 906
 ACC_MC_SLOWER           EQU 907
 ACC_MC_FASTER           EQU 908
+ACC_MC_FULLSCREEN       EQU 909
 
 MFPLAYER_LEFT           EQU 10
 MFPLAYER_TOP            EQU 10
@@ -252,6 +260,7 @@ dwSlowestRate           DD 0
 dwFastestRate           DD 0
 dwCurrentRate           DD 0
 
+g_LangID                DD 0
 g_Playing               DD FALSE
 g_Fullscreen            DD FALSE
 g_wpPrev                WINDOWPLACEMENT <>

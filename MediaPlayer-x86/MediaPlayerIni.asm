@@ -13,7 +13,7 @@ include advapi32.inc
 includelib advapi32.lib
 
 IniFilenameCreate           PROTO lpszIniFile:DWORD, lpszBaseModuleName:DWORD
-IniInit                     PROTO
+IniInit                     PROTO hWin:DWORD, lpszIniFilename:DWORD
 
 IniMRUReloadListToMenu      PROTO hWin:DWORD, lpszIniFilename:DWORD, dwMenuInsertID:DWORD, hMRUBitmap:DWORD, hMRUClearBitmap:DWORD ; Reloads the MRU list and updates the list under the File menu
 IniMRULoadListToMenu        PROTO hWin:DWORD, lpszIniFilename:DWORD, dwMenuInsertID:DWORD, hMRUBitmap:DWORD, hMRUClearBitmap:DWORD ; Loads Most Recently Used (MRU) file list to the Main Menu under the File menu
@@ -24,6 +24,9 @@ IniMRUEntryDeleteFilename   PROTO hWin:DWORD, lpszFilename:DWORD, lpszIniFilenam
 
 IniSaveWindowPosition       PROTO hWin:DWORD, lpszIniFilename:DWORD
 IniLoadWindowPosition       PROTO hWin:DWORD, lpszIniFilename:DWORD
+
+IniGetLanguage              PROTO hWin:DWORD, lpszIniFilename:DWORD
+IniSetLanguage              PROTO hWin:DWORD, lpszIniFilename:DWORD
 
 .CONST
 MRU_MAXFILES                EQU 10
@@ -43,6 +46,8 @@ szIniExt                    DB ".",0,"i",0,"n",0,"i",0
                             DB 0,0,0,0
 szIniMediaPlayer            DB "M",0,"e",0,"d",0,"i",0,"a",0,"P",0,"l",0,"a",0,"y",0,"e",0,"r",0
                             DB 0,0,0,0
+szIniLanguage               DB "L",0,"a",0,"n",0,"g",0,"u",0,"a",0,"g",0,"e",0
+                            DB 0,0,0,0
 szIniOptions                DB "O",0,"p",0,"t",0,"i",0,"o",0,"n",0,"s",0
                             DB 0,0,0,0
 szIniWinPos                 DB "W",0,"i",0,"n",0,"P",0,"o",0,"s",0
@@ -59,8 +64,8 @@ szIniSpace                  DB " ",0
                             DB 0,0,0,0
 szMRUSection                DB "M",0,"R",0,"U",0
                             DB 0,0,0,0
-szMRUClear                  DB "C",0,"l",0,"e",0,"a",0,"r",0," ",0,"R",0,"e",0,"c",0,"e",0,"n",0,"t",0," ",0,"F",0,"i",0,"l",0,"e",0,"s",0
-                            DB 0,0,0,0
+;szMRUClear                  DB "C",0,"l",0,"e",0,"a",0,"r",0," ",0,"R",0,"e",0,"c",0,"e",0,"n",0,"t",0," ",0,"F",0,"i",0,"l",0,"e",0,"s",0
+;                            DB 0,0,0,0
 szMRUFilename               DB 1024 dup (0)
 Unicode16BitLEBOM           DB 0FFh,0FEh
 szIniPlayPause              DD 023EFh
@@ -68,6 +73,7 @@ szIniPlayPause              DD 023EFh
 ELSE
 szIniExt                    DB ".ini",0
 szIniMediaPlayer            DB "MediaPlayer",0
+szIniLanguage               DB "Language",0
 szIniOptions                DB "Options",0
 szIniWinPos                 DB "WinPos",0
 szIniValueZero              DB "0",0
@@ -76,7 +82,7 @@ szIniDefault                DB ":",0
 szIniBackslash              DB "\",0
 szIniSpace                  DB " ",0
 szMRUSection                DB "MRU",0
-szMRUClear                  DB "Clear Recent Files",0
+;szMRUClear                  DB "Clear Recent Files",0
 szMRUFilename               DB 512 dup (0)
 ENDIF
 
@@ -226,8 +232,9 @@ IniFilenameCreate ENDP
 ;------------------------------------------------------------------------------
 ; Read ini settings and set global variables
 ;------------------------------------------------------------------------------
-IniInit PROC
-    
+IniInit PROC hWin:DWORD, lpszIniFilename:DWORD
+    Invoke IniGetLanguage, hWin, lpszIniFilename
+    mov g_LangID, eax
     ret
 IniInit ENDP
 
@@ -616,5 +623,29 @@ IniLoadWindowPosition PROC hWin:DWORD, lpszIniFilename:DWORD
     ret
 IniLoadWindowPosition ENDP
 
+;------------------------------------------------------------------------------
+; IniGetLanguage
+;------------------------------------------------------------------------------
+IniGetLanguage PROC hWin:DWORD, lpszIniFilename:DWORD
+    Invoke GetPrivateProfileInt, Addr szIniMediaPlayer, Addr szIniLanguage, 0, lpszIniFilename
+    ret
+IniGetLanguage ENDP
 
-
+;------------------------------------------------------------------------------
+; IniSetLanguage
+;------------------------------------------------------------------------------
+IniSetLanguage PROC hWin:DWORD, lpszIniFilename:DWORD
+	LOCAL szLangID[16]:BYTE
+	LOCAL pWideLangID:DWORD
+	
+    Invoke dwtoa, g_LangID, Addr szLangID
+	IFDEF __UNICODE__
+	Invoke MFP_ConvertStringToWide, Addr szLangID
+    mov pWideLangID, eax
+    Invoke lstrcpy, Addr szLangID, pWideLangID
+    Invoke MFP_ConvertStringFree, pWideLangID
+	ENDIF
+	
+    Invoke WritePrivateProfileString, Addr szIniMediaPlayer, Addr szIniLanguage, Addr szLangID, lpszIniFilename
+    ret
+IniSetLanguage ENDP

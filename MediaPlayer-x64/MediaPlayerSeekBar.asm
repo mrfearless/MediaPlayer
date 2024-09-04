@@ -20,6 +20,7 @@ MPSBGetPositionMS           PROTO hControl:QWORD
 MPSBStart                   PROTO hControl:QWORD
 MPSBStop                    PROTO hControl:QWORD
 MPSBStepPosition            PROTO hControl:QWORD, dwSeconds:DWORD, bForward:QWORD
+MPSBRefresh                 PROTO hControl:QWORD
 
 ; MediaPlayer Seek Bar Control Functions (Internal):
 _MPSBWndProc                PROTO hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
@@ -760,7 +761,8 @@ _MPSBCalcPosWidth ENDP
 _MPSBTimerProc PROC FRAME lpParam:QWORD, TimerOrWaitFired:QWORD
     LOCAL TimerCallbackFunction:_MPSBTimerCallback_Ptr
     LOCAL TimerCallbackParam:QWORD
-    LOCAL dwPostionMS:DWORD
+    LOCAL dwDurationMS:DWORD
+    LOCAL dwPositionMS:DWORD
     
     ; lpParam is hControl
     
@@ -777,8 +779,10 @@ _MPSBTimerProc PROC FRAME lpParam:QWORD, TimerOrWaitFired:QWORD
         Invoke GetWindowLongPtr, lpParam, @MPSB_MediaWindow
         Invoke IsWindow, rax
         .IF rax == TRUE
+            Invoke GetWindowLong, lpParam, @MPSB_DurationMS
+            mov dwDurationMS, eax
             Invoke _MPSBGetPosition, lpParam
-            mov dwPostionMS, eax
+            mov dwPositionMS, eax
             Invoke _MPSBCalcPosWidth, lpParam
             Invoke InvalidateRect, lpParam, NULL, TRUE
             Invoke UpdateWindow, lpParam
@@ -788,8 +792,18 @@ _MPSBTimerProc PROC FRAME lpParam:QWORD, TimerOrWaitFired:QWORD
                 Invoke GetWindowLongPtr, lpParam, @MPSB_TimerCBParam
                 mov TimerCallbackParam, rax
                 ; Call callback function
-                Invoke TimerCallbackFunction, dwPostionMS, TimerCallbackParam
+                Invoke TimerCallbackFunction, dwPositionMS, TimerCallbackParam
             .ENDIF
+            
+            ; Added check for > duration issue
+            mov eax, dwPositionMS
+            .IF sdword ptr eax > dwDurationMS
+                Invoke MFPMediaPlayer_Stop, pMP
+                Invoke MPSBSetPositionMS, lpParam, 0
+                Invoke MPSBRefresh, lpParam
+                ret
+            .ENDIF
+            
         .ELSE
             Invoke SetWindowLongPtr, lpParam, @MPSB_DurationMS, 0
             Invoke SetWindowLongPtr, lpParam, @MPSB_PositionMS, 0
@@ -1101,15 +1115,18 @@ MPSBStop PROC FRAME hControl:QWORD
             .ENDIF
             
             ; Call the callback one last time to update anything
-            Invoke _MPSBTimerProc, hControl, 0
-;            Invoke GetWindowLongPtr, hControl, @MPSB_TimerCB
-;            .IF rax != 0
-;                mov TimerCallbackFunction, rax
-;                Invoke GetWindowLongPtr, hControl, @MPSB_TimerCBParam
-;                mov TimerCallbackParam, rax
-;                ; Call callback function
-;                Invoke TimerCallbackFunction, -1, TimerCallbackParam
-;            .ENDIF
+            ;Invoke _MPSBTimerProc, hControl, 0
+            Invoke GetWindowLongPtr, hControl, @MPSB_TimerCB
+            .IF rax != 0
+                mov TimerCallbackFunction, rax
+                Invoke GetWindowLongPtr, hControl, @MPSB_TimerCBParam
+                mov TimerCallbackParam, rax
+                ; Call callback function
+                Invoke TimerCallbackFunction, -1, TimerCallbackParam
+            .ENDIF
+            
+            Invoke MPSBSetPositionMS, hControl, 0
+            Invoke MPSBRefresh, hControl
 
         .ELSE ; failed
             IFDEF DEBUG64
@@ -1125,6 +1142,7 @@ MPSBStop ENDP
 ; MPSBStepPosition
 ;------------------------------------------------------------------------------
 MPSBStepPosition PROC FRAME USES RBX hControl:QWORD, dwSeconds:DWORD, bForward:QWORD
+    LOCAL dwDurationMS:DWORD
     LOCAL dwPositionMS:DWORD
     LOCAL dwState:DWORD
     
@@ -1140,8 +1158,12 @@ MPSBStepPosition PROC FRAME USES RBX hControl:QWORD, dwSeconds:DWORD, bForward:Q
                 ret
             .ENDIF
         
-            Invoke GetWindowLong, hControl, @MPSB_PositionMS
-            mov dwPositionMS, eax
+            Invoke GetWindowLong, hControl, @MPSB_DurationMS
+            mov dwDurationMS, eax
+            ;Invoke GetWindowLong, hControl, @MPSB_PositionMS
+            ;mov dwPositionMS, eax
+            ; Get current position rather than last reported one stored in @MPSB_PositionMS
+            Invoke MFPMediaPlayer_GetPosition, pMP, Addr dwPositionMS
         
             mov eax, dwSeconds
             .IF eax == 0
@@ -1152,6 +1174,14 @@ MPSBStepPosition PROC FRAME USES RBX hControl:QWORD, dwSeconds:DWORD, bForward:Q
             mov ebx, dwPositionMS
             .IF bForward == TRUE
                 add ebx, eax
+                ; added check for > duration issue
+                mov eax, dwDurationMS
+                .IF sdword ptr ebx > eax
+                    Invoke MFPMediaPlayer_Stop, pMP
+                    Invoke MPSBSetPositionMS, hControl, 0
+                    Invoke MPSBRefresh, hControl
+                    ret
+                .ENDIF
             .ELSE
                 sub ebx, eax
                 .IF sdword ptr ebx < 0
@@ -1175,7 +1205,14 @@ MPSBStepPosition PROC FRAME USES RBX hControl:QWORD, dwSeconds:DWORD, bForward:Q
     ret
 MPSBStepPosition ENDP
 
-
+;------------------------------------------------------------------------------
+; MPSBRefresh
+;------------------------------------------------------------------------------
+MPSBRefresh PROC FRAME hControl:QWORD
+    Invoke _MPSBCalcPosWidth, hControl
+    Invoke InvalidateRect, hControl, NULL, TRUE
+    ret
+MPSBRefresh ENDP
 
 
 
