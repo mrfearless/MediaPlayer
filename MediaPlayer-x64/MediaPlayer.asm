@@ -23,15 +23,38 @@ option stackbase : rsp
 _WIN64 EQU 1
 WINVER equ 0501h
 
+;------------------------------------------------------------------------------
+; Unicode support 
+;
+; Comment out for Ansi support only. Leave uncommented for wide/unicode support
+;------------------------------------------------------------------------------
 __UNICODE__ EQU 1
 IFDEF __UNICODE__
 UNICODE EQU 1 ; WinInc definition
 ENDIF
 
-MP_PATTERN_BACKGROUND EQU 1 ; comment out to allow pattern backgrounds
-
-;DEBUG64 EQU 1
+;------------------------------------------------------------------------------
+; Use resources compressed using RTL Compression (Run-Time-Library WinXP+)
 ;
+; Comment out MP_RTLC_RESOURCES for normal uncompressed resources. And also 
+; remember to remove /d MP_RTLC_RESOURCES from the RC command line if you want 
+; uncompressed resources.
+;------------------------------------------------------------------------------
+MP_RTLC_RESOURCES EQU 1
+
+;------------------------------------------------------------------------------
+; Use a pattern background 
+;
+; Leave uncommented to allow pattern backgrounds or comment out to disable
+;------------------------------------------------------------------------------
+MP_PATTERN_BACKGROUND EQU 1
+
+;------------------------------------------------------------------------------
+; Debug
+; 
+; Comment out to disable debug macros
+;------------------------------------------------------------------------------
+;DEBUG64 EQU 1
 ;IFDEF DEBUG64
 ;    PRESERVEXMMREGS equ 1
 ;    includelib \UASM\lib\x64\Debug64.lib
@@ -45,6 +68,8 @@ MP_PATTERN_BACKGROUND EQU 1 ; comment out to allow pattern backgrounds
 
 include MediaPlayer.inc
 
+include MediaPlayerUtil.asm     ; Utility functions
+include MediaPlayerLang.asm     ; Language
 include MediaPlayerStrings.asm  ; language strings
 include MediaPlayerIni.asm      ; ini file settings
 include MediaPlayerAbout.asm    ; About dialog box
@@ -55,6 +80,7 @@ include MediaPlayerLabels.asm   ; Label controls for position and duration
 include MediaPlayerVolume.asm   ; Volume Slider Control
 include MediaPlayerSeekBar.asm  ; Seek Bar Control
 include MediaPlayerControls.asm ; Toolbars & toolbar buttons for main MFPlay features
+include MediaPlayerInfo.asm     ; Media Item Information
 
 
 .CODE
@@ -227,7 +253,10 @@ WndProc PROC FRAME hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                 xor rax, rax
                 mov eax, dwCurrentRate
                 shr eax, 1 ; /2
-                Invoke MFPMediaPlayer_SetRate, pMP, eax
+                .IF eax >= MPF_MIN_RATE
+                    Invoke MFPMediaPlayer_SetRate, pMP, eax
+                    Invoke GUISetPositionTime, dwPositionTimeMS
+                .ENDIF
             .ENDIF
             
         .ELSEIF eax == IDM_MC_PS_Faster || eax == ACC_MC_FASTER
@@ -235,7 +264,10 @@ WndProc PROC FRAME hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                 xor rax, rax
                 mov eax, dwCurrentRate
                 shl eax, 1 ; x2
-                Invoke MFPMediaPlayer_SetRate, pMP, eax
+                .IF sdword ptr eax <= MPF_MAX_RATE
+                    Invoke MFPMediaPlayer_SetRate, pMP, eax
+                    Invoke GUISetPositionTime, dwPositionTimeMS
+                .ENDIF
             .ENDIF
 			
         ;----------------------------------------------------------------------
@@ -274,6 +306,12 @@ WndProc PROC FRAME hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
         .ELSEIF eax == IDM_LANG_Italian
             .IF g_LangID != IDLANG_ITALIAN
                 mov g_LangID, IDLANG_ITALIAN
+                Invoke GUILanguageChange, hWin
+            .ENDIF
+			
+        .ELSEIF eax == IDM_LANG_Spanish
+            .IF g_LangID != IDLANG_SPANISH
+                mov g_LangID, IDLANG_SPANISH
                 Invoke GUILanguageChange, hWin
             .ENDIF
 			
@@ -391,7 +429,7 @@ WndProc PROC FRAME hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
     
     .ELSEIF eax == WM_GETMINMAXINFO
         mov rbx, lParam
-        mov [rbx].MINMAXINFO.ptMinTrackSize.x, 731 ;630
+        mov [rbx].MINMAXINFO.ptMinTrackSize.x, 771 ;630
         mov [rbx].MINMAXINFO.ptMinTrackSize.y, 450
         mov rax, 0
         ret
@@ -609,20 +647,32 @@ GUIInit PROC FRAME hWin:QWORD
     ;--------------------------------------------------------------------------
     Invoke SendMessage, hWin, WM_SETICON, ICON_BIG, hIcoMain
     Invoke SendMessage, hWin, WM_SETICON, ICON_SMALL, hIcoMain
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MFPLAY_VIDEO
+    ELSE
     Invoke LoadImage, hInstance, ICO_MFPLAY_VIDEO, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcoMFPlayer, rax
     mov hIcoMFPlayVideo, rax
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MFPLAY_AUDIO
+    ELSE
     Invoke LoadImage, hInstance, ICO_MFPLAY_AUDIO, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcoMFPlayAudio, rax
     
     ;--------------------------------------------------------------------------
     ; Load pattern for background
     ;--------------------------------------------------------------------------
     IFDEF MP_PATTERN_BACKGROUND
-    Invoke LoadImage, hInstance, BMP_PATTERN, IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR
-    mov hPatternBitmap, rax
-    Invoke CreatePatternBrush, hPatternBitmap
-    mov hPatternBrush, rax
+        IFDEF MP_RTLC_RESOURCES ; Use rtlc compressed resource
+        Invoke BitmapCreateFromCompressedRes, hInstance, BMP_PATTERN
+        ELSE ; use normal resource
+        Invoke LoadImage, hInstance, BMP_PATTERN, IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR
+        ENDIF  
+        mov hPatternBitmap, rax
+        Invoke CreatePatternBrush, hPatternBitmap
+        mov hPatternBrush, rax
     ENDIF
     
     ;--------------------------------------------------------------------------
@@ -633,18 +683,9 @@ GUIInit PROC FRAME hWin:QWORD
     ;--------------------------------------------------------------------------
     ; Menus
     ;--------------------------------------------------------------------------
-    ;Invoke GetMenu, hWin
-    ;mov hMediaPlayerMainMenu, rax
-    
-    Invoke MPMainMenuInit, hWin
-    Invoke MPContextMenuInit, hWin
-    
-    Invoke LoadImage, hInstance, BMP_FILE_MRU, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBmpFileMRU, rax
-    
-    Invoke LoadImage, hInstance, BMP_FILE_MRU_CLEAR, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBmpFileMRUClear, rax
-    
+    Invoke MPLoadMenuBitmaps, hWin
+    Invoke MPLangLoadMenus, g_LangID, hWin, Addr hMediaPlayerMainMenu, Addr hMediaPlayerContextMenu
+    Invoke MPSetMenuBitmaps, hWin
     Invoke IniMRULoadListToMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_Exit, hBmpFileMRU, hBmpFileMRUClear
     
     ;--------------------------------------------------------------------------
@@ -677,7 +718,7 @@ GUIInit PROC FRAME hWin:QWORD
     ;--------------------------------------------------------------------------
     Invoke MediaPlayerWindowCreate, hWin, 15, 20, 925, 630, IDC_MFPLAYER
     mov hMediaPlayerWindow, rax
-    Invoke MFPMediaPlayer_Init, hMediaPlayerWindow, Addr MFP_OnMediaPlayerEvent, Addr pMP
+    ;Invoke MFPMediaPlayer_Init, hMediaPlayerWindow, Addr MFP_OnMediaPlayerEvent, Addr pMP
     
     ;--------------------------------------------------------------------------
     ; MediaPlayerSeekBar
@@ -694,8 +735,10 @@ GUIInit PROC FRAME hWin:QWORD
     ;--------------------------------------------------------------------------
     ; Initialize some controls
     ;--------------------------------------------------------------------------
-    Invoke MPSBInit, hMediaPlayerSeekBar, hMediaPlayerWindow, pMP, Addr GUIPositionUpdate, NULL
-    Invoke MPVInit, hMPC_VolumeSlider, pMP
+    ;Invoke MPSBInit, hMediaPlayerSeekBar, hMediaPlayerWindow, pMP, Addr GUIPositionUpdate, NULL
+    ;Invoke MPVInit, hMPC_VolumeSlider, pMP
+    
+    Invoke MediaPlayerInitEngine, hWin
     
     Invoke IniLoadWindowPosition, hWin, Addr MediaPlayerIniFile
     
@@ -933,10 +976,27 @@ GUISetDurationTime ENDP
 ; GUISetPositionTime - set text label showing current position of media item
 ;------------------------------------------------------------------------------
 GUISetPositionTime PROC FRAME dwMilliseconds:DWORD
-    LOCAL szPositionTime[32]:BYTE
+    LOCAL szPositionTime[64]:BYTE
     
     .IF dwMilliseconds != -1
         Invoke MFPConvertMSTimeToTimeString, dwMilliseconds, Addr szPositionTime, 1
+        
+        ; Add play speed indicator to current position text
+        mov eax, dwCurrentRate
+        .IF eax == 1000
+            ; no need to display
+        .ELSEIF eax == 2000
+            Invoke lstrcat, Addr szPositionTime, Addr szRatex2
+        .ELSEIF eax == 4000
+            Invoke lstrcat, Addr szPositionTime, Addr szRatex4
+        .ELSEIF eax == 500
+            Invoke lstrcat, Addr szPositionTime, Addr szRatex05
+        .ELSEIF eax == 250
+            Invoke lstrcat, Addr szPositionTime, Addr szRatex025
+        .ELSEIF eax == 125
+            Invoke lstrcat, Addr szPositionTime, Addr szRatex0125
+        .ENDIF
+        
         Invoke SetWindowText, hMFP_Position, Addr szPositionTime
     .ELSE
         Invoke SetWindowText, hMFP_Position, Addr szPositionTimeEmpty
@@ -1148,9 +1208,9 @@ GUIIsClickInArea ENDP
 ; GUILanguageChange - Updates menus and strings when language changes
 ;------------------------------------------------------------------------------
 GUILanguageChange PROC FRAME hWin:QWORD
-    Invoke MPMainMenuInit, hWin
-    Invoke MPContextMenuInit, hWin
     Invoke MPStringsInit
+    Invoke MPLangLoadMenus, g_LangID, hWin, Addr hMediaPlayerMainMenu, Addr hMediaPlayerContextMenu
+    Invoke MPSetMenuBitmaps, hWin
     Invoke IniMRULoadListToMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_Exit, hBmpFileMRU, hBmpFileMRUClear
     Invoke IniSetLanguage, hWin, Addr MediaPlayerIniFile
     ret
@@ -1183,37 +1243,47 @@ MediaPlayerBrowseForFile ENDP
 ;------------------------------------------------------------------------------
 MediaPlayerOpenFile PROC FRAME hWin:QWORD, lpszMediaFile:QWORD
     LOCAL dwState:DWORD
-    .IF pMP != 0
-        Invoke MFPMediaPlayer_GetState, pMP, Addr dwState
-        .IF rax == TRUE 
-            .IF dwState == MFP_MEDIAPLAYER_STATE_PLAYING
-                Invoke MFPMediaPlayer_Stop, pMP
-            .ENDIF
-            .IF pMI != 0
-                Invoke MFPMediaPlayer_ClearMediaItem, pMP
-                Invoke MFPMediaItem_Release, pMI
-                mov pMI, 0
-            .ENDIF
-            Invoke MFPMediaPlayer_CreateMediaItem, pMP, lpszMediaFile, 0, Addr pMI
-            .IF rax == TRUE
-                Invoke MFPMediaPlayer_SetMediaItem, pMP, pMI
-                Invoke SetFocus, hMediaPlayerWindow
-                Invoke GUISetTitleMediaLoaded, hWin, lpszMediaFile
-                
-                ; Update MRU
-                Invoke IniMRUEntrySaveFilename, hWin, lpszMediaFile, Addr MediaPlayerIniFile
-                Invoke IniMRUReloadListToMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_Exit, hBmpFileMRU, hBmpFileMRUClear
-                
-            .ELSE
-                Invoke GUISetTitleMediaLoaded, hWin, 0
-                Invoke GUISetDurationTime, -1
-                Invoke GUISetPositionTime, -1
-            .ENDIF
-        .ENDIF
+    
+    Invoke MediaPlayerInitEngine, hWin
+
+    Invoke MFPMediaPlayer_CreateMediaItem, pMP, lpszMediaFile, 0, Addr pMI
+    .IF eax == TRUE
+        Invoke MFPMediaPlayer_SetMediaItem, pMP, pMI
+        Invoke SetFocus, hMediaPlayerWindow
+        Invoke GUISetTitleMediaLoaded, hWin, lpszMediaFile
+        
+        ; Update MRU
+        Invoke IniMRUEntrySaveFilename, hWin, lpszMediaFile, Addr MediaPlayerIniFile
+        Invoke IniMRUReloadListToMenu, hWin, Addr MediaPlayerIniFile, IDM_FILE_Exit, hBmpFileMRU, hBmpFileMRUClear
+        
+    .ELSE
+        Invoke GUISetTitleMediaLoaded, hWin, 0
+        Invoke GUISetDurationTime, -1
+        Invoke GUISetPositionTime, -1
     .ENDIF
 
     ret
 MediaPlayerOpenFile ENDP
+
+;------------------------------------------------------------------------------
+; MediaPlayerInitEngine
+;------------------------------------------------------------------------------
+MediaPlayerInitEngine PROC FRAME hWin:QWORD
+    
+    .IF pMP != 0
+        Invoke MFPMediaPlayer_GetVolume, pMP, Addr g_PrevVolume
+        Invoke MFPMediaPlayer_Free, Addr pMP 
+    .ENDIF
+    
+    Invoke MFPMediaPlayer_Init, hMediaPlayerWindow, Addr MFP_OnMediaPlayerEvent, Addr pMP
+    ;--------------------------------------------------------------------------
+    ; Initialize some controls
+    ;--------------------------------------------------------------------------
+    Invoke MPSBInit, hMediaPlayerSeekBar, hMediaPlayerWindow, pMP, Addr GUIPositionUpdate, NULL
+    Invoke MPVInit, hMPC_VolumeSlider, pMP
+    Invoke MediaPlayerVolumeSet, hMPC_VolumeSlider, g_PrevVolume
+    ret
+MediaPlayerInitEngine ENDP
 
 ;------------------------------------------------------------------------------
 ; MFP_OnMediaPlayerEvent - Notification event callback for when the media 
@@ -1313,6 +1383,8 @@ MFP_OnMediaPlayerEvent PROC FRAME USES RBX lpThis:QWORD, pEventHeader:QWORD
         
         Invoke MFPMediaPlayer_GetSupportedRates, pMP, TRUE, Addr dwSlowestRate, Addr dwFastestRate
         mov dwCurrentRate, MFP_DEFAULT_RATE
+        
+        Invoke MFI_MediaItemInfoText, pMediaItem
         
         Invoke MFPMediaPlayer_Play, pMP
 
@@ -1638,87 +1710,16 @@ CmdLineProcess PROC FRAME
     ret
 CmdLineProcess ENDP
 
-IFDEF __UNICODE__
-;------------------------------------------------------------------------------
-; MFP_ConvertStringToWide
-;
-; Converts a Ansi string to an Wide/Unicode string.
-;
-; Parameters:
-; 
-; * lpszAnsiString - pointer to an Ansi string to convert to a Wide string.
-; 
-; Returns:
-; 
-; A pointer to the Wide string if successful, or NULL otherwise.
-; 
-; Notes:
-;
-; The string that is converted should be freed when it is no longer needed with 
-; a call to the MFP_ConvertStringFree function.
-;
-; See Also:
-;
-; MFP_ConvertStringToAnsi, MFP_ConvertStringFree
-; 
-;------------------------------------------------------------------------------
-MFP_ConvertStringToWide PROC FRAME lpszAnsiString:QWORD
-    LOCAL dwWideStringSize:DWORD
-    LOCAL lpszWideString:QWORD
-    
-    .IF lpszAnsiString == NULL
-        mov rax, NULL
-        ret
-    .ENDIF
-    Invoke MultiByteToWideChar, CP_UTF8, 0, lpszAnsiString, -1, NULL, 0
-    .IF rax == 0
-        ret
-    .ENDIF
-    mov dwWideStringSize, eax
-    shl rax, 1 ; x2 to get non wide char count
-    add rax, 4 ; add 4 for good luck and nulls
-    Invoke GlobalAlloc, GMEM_FIXED or GMEM_ZEROINIT, rax
-    .IF rax == NULL
-        ret
-    .ENDIF
-    mov lpszWideString, rax
-    Invoke MultiByteToWideChar, CP_UTF8, 0, lpszAnsiString, -1, lpszWideString, dwWideStringSize
-    .IF rax == 0
-        ret
-    .ENDIF
-    mov rax, lpszWideString
-    ret
-MFP_ConvertStringToWide ENDP
+IFDEF MP_RTLC_RESOURCES
+ECHO MP_RTLC_RESOURCES Enabled: Using Compressed Resources.
+ELSE
+ECHO MP_RTLC_RESOURCES Disabled: Using Normal Resources.
+ENDIF
 
-;------------------------------------------------------------------------------
-; MFP_ConvertStringFree
-;
-; Frees a string created by MFP_ConvertStringToWide or
-; MFP_ConvertStringToAnsi
-;
-; Parameters:
-; 
-; * lpString - pointer to a converted string to free.
-; 
-; Returns:
-; 
-; None.
-; 
-; See Also:
-;
-; MFP_ConvertStringToWide, MFP_ConvertStringToAnsi
-; 
-;------------------------------------------------------------------------------
-MFP_ConvertStringFree PROC FRAME lpString:QWORD
-    mov rax, lpString
-    .IF rax == NULL
-        mov rax, FALSE
-        ret
-    .ENDIF
-    Invoke GlobalFree, rax
-    mov rax, TRUE
-    ret
-MFP_ConvertStringFree ENDP
+IFDEF MP_DEVMODE
+ECHO MP_DEVMODE Enabled: MPLangDump available.
+ELSE
+ECHO MP_DEVMODE Disabled.
 ENDIF
 
 end WinMainCRTStartup

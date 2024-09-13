@@ -102,53 +102,7 @@ TB_FS_BACKCOLOR         EQU MAINWINDOW_FS_BACKCOLOR ; RGB(81,81,81)
 
 
 .DATA
-; MediaPlayerControls Tooltips
-IFDEF __UNICODE__
-;szTip_MPC_Open		    DB 'O',0,'p',0,'e',0,'n',0,' ',0,'a',0,' ',0,'m',0,'e',0,'d',0,'i',0,'a',0,' ',0,'f',0,'i',0,'l',0,'e',0,' ',0,'t',0,'o',0,' ',0
-;                        DB 'p',0,'l',0,'a',0,'y',0
-;                        DB 0,0,0,0
-;szTip_MPC_Stop		    DB 'S',0,'t',0,'o',0,'p',0,' ',0,'P',0,'l',0,'a',0,'y',0,'b',0,'a',0,'c',0,'k',0
-;                        DB 0,0,0,0
-;szTip_MPC_Pause		    DB 'P',0,'a',0,'u',0,'s',0,'e',0,' ',0,'P',0,'l',0,'a',0,'y',0,'b',0,'a',0,'c',0,'k',0
-;                        DB 0,0,0,0
-;szTip_MPC_Play		    DB 'P',0,'l',0,'a',0,'y',0,'/',0,'P',0,'a',0,'u',0,'s',0,'e',0,' ',0,'T',0,'o',0,'g',0,'g',0,'l',0,'e',0
-;                        DB 0,0,0,0
-;szTip_MPC_Step		    DB 'F',0,'r',0,'a',0,'m',0,'e',0,' ',0,'S',0,'t',0,'e',0,'p',0
-;                        DB 0,0,0,0
-;szTip_MPC_Fullscreen	DB 'T',0,'o',0,'g',0,'g',0,'l',0,'e',0,' ',0,'F',0,'u',0,'l',0,'l',0,'s',0,'c',0,'r',0,'e',0,'e',0,'n',0
-;                        DB 0,0,0,0
-;szTip_MPC_Exit		    DB 'E',0,'x',0,'i',0,'t',0,' ',0,'A',0,'p',0,'p',0,'l',0,'i',0,'c',0,'a',0,'t',0,'i',0,'o',0,'n',0
-;                        DB 0,0,0,0
-;szTip_MPC_VolumeToggle  DB 'V',0,'o',0,'l',0,'u',0,'m',0,'e',0,' ',0,'M',0,'u',0,'t',0,'e',0,' ',0,'T',0,'o',0,'g',0,'g',0,'l',0,'e',0
-;                        DB 0,0,0,0
-;szTip_MPC_Aspect        DB 'V',0,'i',0,'d',0,'e',0,'o',0,' ',0,'A',0,'s',0,'p',0,'e',0,'c',0,'t',0
-;                        DB 0,0,0,0
-;szTip_MPC_About         DB 'A',0,'b',0,'o',0,'u',0,'t',0,' ',0,'M',0,'e',0,'d',0,'i',0,'a',0,'P',0,'l',0,'a',0,'y',0,'e',0,'r',0
-;                        DB 0,0,0,0
-;szTip_MPC_StepForward10 DB 'S',0,'t',0,'e',0,'p',0,' ',0,'F',0,'o',0,'r',0,'w',0,'a',0,'r',0,'d',0,' ',0,'1',0,'0',0,' ',0,'S',0,'e',0,'c',0,'o',0,'n',0,'d',0,'s',0
-;                        DB 0,0,0,0
-;szTip_MPC_StepBackward10 DB 'S',0,'t',0,'e',0,'p',0,' ',0,'B',0,'a',0,'c',0,'k',0,'w',0,'a',0,'r',0,'d',0,' ',0,'1',0,'0',0,' ',0,'S',0,'e',0,'c',0,'o',0,'n',0,'d',0,'s',0
-;                        DB 0,0,0,0
-;szTip_MPC_Faster        DB 'F',0,'a',0,'s',0,'t',0,'e',0,'r',0,' ',0,'P',0,'l',0,'a',0,'y',0,' ',0,'S',0,'p',0,'e',0,'e',0,'d',0
-;                        DB 0,0,0,0
-;szTip_MPC_Slower        DB 'S',0,'l',0,'o',0,'w',0,'e',0,'r',0,' ',0,'P',0,'l',0,'a',0,'y',0,' ',0,'S',0,'p',0,'e',0,'e',0,'d',0
-;                        DB 0,0,0,0
-ELSE
-;szTip_MPC_Open		    DB 'Open a media file to play',0
-;szTip_MPC_Stop		    DB 'Stop Playback',0
-;szTip_MPC_Pause		    DB 'Pause Playback',0
-;szTip_MPC_Play		    DB 'Play/Pause Toggle',0
-;szTip_MPC_Step		    DB 'Frame Step',0
-;szTip_MPC_Fullscreen	DB 'Toggle Fullscreen',0
-;szTip_MPC_Exit		    DB 'Exit Application',0
-;szTip_MPC_VolumeToggle  DB 'Volume Mute Toggle',0
-;szTip_MPC_Aspect        DB 'Video Aspect',0
-;szTip_MPC_About         DB 'About MediaPlayer',0
-;szTip_MPC_StepForward10 DB 'Step Forward 10 Seconds',0
-;szTip_MPC_StepBackward10 DB 'Step Backward 10 Seconds',0
-;szTip_MPC_Faster        DB 'Faster Play Speed',0
-;szTip_MPC_Slower        DB 'Slower Play Speed',0
-ENDIF
+
 
 .DATA?
 ; MediaPlayerControls Handles
@@ -239,20 +193,24 @@ MediaPlayerControlsProc PROC FRAME USES RBX hWin:HWND, uMsg:UINT, wParam:WPARAM,
         .ELSEIF eax == IDC_MPC_Step10B
             Invoke MPSBStepPosition, hMediaPlayerSeekBar, 10, FALSE
             
+        .ELSEIF eax == IDC_MPC_Slower
+            .IF pMI != 0
+                xor rax, rax
+                mov eax, dwCurrentRate
+                shr eax, 1 ; /2
+                .IF eax >= MPF_MIN_RATE
+                    Invoke GUISetPositionTime, dwPositionTimeMS
+                    Invoke MFPMediaPlayer_SetRate, pMP, eax
+                .ENDIF
+            .ENDIF
+            
         .ELSEIF eax == IDC_MPC_Faster
             .IF pMI != 0
                 xor rax, rax
                 mov eax, dwCurrentRate
                 shl eax, 1 ; x2
                 Invoke MFPMediaPlayer_SetRate, pMP, eax
-            .ENDIF
-            
-        .ELSEIF eax == IDC_MPC_Slower
-            .IF pMI != 0
-                xor rax, rax
-                mov eax, dwCurrentRate
-                shr eax, 1 ; /2
-                Invoke MFPMediaPlayer_SetRate, pMP, eax
+                Invoke GUISetPositionTime, dwPositionTimeMS
             .ENDIF
             
         .ENDIF
@@ -285,7 +243,11 @@ MediaPlayerControlsProc PROC FRAME USES RBX hWin:HWND, uMsg:UINT, wParam:WPARAM,
             .ELSEIF rax == IDC_MPC_Aspect
                 lea rax, szTip_MPC_Aspect
             .ELSEIF rax == IDC_MPC_About
-                lea rax, szTip_MPC_About
+                .IF pszMediaItemInfo == 0
+                    lea rax, szTip_MPC_About
+                .ELSE
+                    mov rax, pszMediaItemInfo
+                .ENDIF
             .ELSEIF eax == IDC_MPC_Step10F
                 lea rax, szTip_MPC_Step10F
             .ELSEIF eax == IDC_MPC_Step10B
@@ -358,86 +320,138 @@ _MPCInit PROC FRAME USES RBX hWin:QWORD
     Invoke GetDlgItem, hWin, IDC_MPC_ToolbarControls
     mov hMPC_ToolbarControls, rax
 
-;    Invoke GetDlgItem, hWin, IDC_MPC_ToolbarVolume ; removed flat style from this toolbar
-;    mov hMPC_ToolbarVolume, rax
-;
-;    Invoke GetDlgItem, hWin, IDC_MPC_ToolbarScreen
-;    mov hMPC_ToolbarScreen, rax
-
     Invoke ImageList_Create, 32, 32, ILC_COLOR32, 16, 32
     mov hMPC_ImageList_Enabled, rax
     
     Invoke SendMessage, hMPC_ToolbarControls, TB_SETIMAGELIST, 0, hMPC_ImageList_Enabled
     Invoke SendMessage, hMPC_ToolbarControls, TB_SETEXTENDEDSTYLE, TBSTYLE_EX_DOUBLEBUFFER, TBSTYLE_EX_DOUBLEBUFFER
-    
-;    Invoke SendMessage, hMPC_ToolbarVolume, TB_SETIMAGELIST, 0, hMPC_ImageList_Enabled
-;    Invoke SendMessage, hMPC_ToolbarVolume, TB_SETEXTENDEDSTYLE, TBSTYLE_EX_DOUBLEBUFFER, TBSTYLE_EX_DOUBLEBUFFER
-;    
-;    Invoke SendMessage, hMPC_ToolbarScreen, TB_SETIMAGELIST, 0, hMPC_ImageList_Enabled
-;    Invoke SendMessage, hMPC_ToolbarScreen, TB_SETEXTENDEDSTYLE, TBSTYLE_EX_DOUBLEBUFFER or TBSTYLE_EX_DRAWDDARROWS, TBSTYLE_EX_DOUBLEBUFFER or TBSTYLE_EX_DRAWDDARROWS
-    
+
     ; Media Player Images
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_OPEN
+    ELSE    
     Invoke LoadImage, hInstance, ICO_MPC_OPEN, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_STOP
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_STOP, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_PAUSE
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_PAUSE, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_PLAY
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_PLAY, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_STEP
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_STEP, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_EXIT
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_EXIT, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_FULLSCREEN
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_FULLSCREEN, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_ABOUT
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_ABOUT, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_A_STRETCH
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_A_STRETCH, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_A_NORMAL
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_A_NORMAL, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
 
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_VOLUME
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_VOLUME, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_MUTE
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_MUTE, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_STEP10F
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_STEP10F, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_STEP10B
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_STEP10B, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_FASTER
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_FASTER, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
+    IFDEF MP_RTLC_RESOURCES
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_SLOWER
+    ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_SLOWER, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
@@ -527,67 +541,6 @@ _MPCInit PROC FRAME USES RBX hWin:QWORD
 	mov tbb.fsStyle, TBSTYLE_BUTTON
 	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
 
-;	mov tbb.iBitmap, TBID_MPC_Exit
-;	mov tbb.idCommand, IDC_MPC_Exit
-;	mov tbb.fsStyle, TBSTYLE_BUTTON
-;	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
-
-    ;--------------------------------------------------------------------------
-    ; Set button and bitmap size for Volume toolbar button images
-    ;--------------------------------------------------------------------------
-;    Invoke SendMessage, hMPC_ToolbarVolume, TB_BUTTONSTRUCTSIZE, sizeof TBBUTTON, 0	; Set toolbar struct size
-;	mov rbx, 32 ; width
-;	mov rax, 32 ; height
-;	shl rax, 16d
-;	mov ax, bx
-;	mov bSize, eax
-;	Invoke SendMessage, hMPC_ToolbarVolume, TB_SETBITMAPSIZE, 0, bSize ; Set bitmap size
-;	Invoke SendMessage, hMPC_ToolbarVolume, TB_SETBUTTONSIZE, 0, bSize ; Set each button size
-;    
-;	mov tbb.fsState, TBSTATE_ENABLED
-;	mov tbb.dwData, 0
-;	mov tbb.iString, 0
-;    
-;	mov tbb.iBitmap, TBID_MPC_Volume
-;	mov tbb.idCommand, IDC_MPC_VolumeToggle
-;	mov tbb.fsStyle, TBSTYLE_CHECK ;TBSTYLE_BUTTON
-;	Invoke SendMessage, hMPC_ToolbarVolume, TB_ADDBUTTONS, 1, Addr tbb
-;    
-;    mov tbb.iBitmap, 230
-;    mov tbb.fsStyle, TBSTYLE_SEP ; removed flat style from this toolbar to hide seperator line
-;    Invoke SendMessage, hMPC_ToolbarVolume, TB_ADDBUTTONS, 1, Addr tbb
-;    
-;    ;--------------------------------------------------------------------------
-;    ; Set button and bitmap size for Screen toolbar button images
-;    ;--------------------------------------------------------------------------
-;    Invoke SendMessage, hMPC_ToolbarScreen, TB_BUTTONSTRUCTSIZE, sizeof TBBUTTON, 0	; Set toolbar struct size
-;	mov rbx, 32 ; width
-;	mov rax, 32 ; height
-;	shl rax, 16d
-;	mov ax, bx
-;	mov bSize, eax
-;	Invoke SendMessage, hMPC_ToolbarScreen, TB_SETBITMAPSIZE, 0, bSize ; Set bitmap size
-;	Invoke SendMessage, hMPC_ToolbarScreen, TB_SETBUTTONSIZE, 0, bSize ; Set each button size
-;    
-;	mov tbb.fsState, TBSTATE_ENABLED
-;	mov tbb.dwData, 0
-;	mov tbb.iString, 0
-;    
-;	mov tbb.iBitmap, TBID_MPC_Fullscreen
-;	mov tbb.idCommand, IDC_MPC_Fullscreen
-;	mov tbb.fsStyle, TBSTYLE_BUTTON
-;	Invoke SendMessage, hMPC_ToolbarScreen, TB_ADDBUTTONS, 1, Addr tbb
-;	
-;	mov tbb.iBitmap, TBID_MPC_About
-;	mov tbb.idCommand, IDC_MPC_About
-;	mov tbb.fsStyle, TBSTYLE_BUTTON
-;	Invoke SendMessage, hMPC_ToolbarScreen, TB_ADDBUTTONS, 1, Addr tbb
-;	
-;	mov tbb.iBitmap, TBID_MPC_Exit
-;	mov tbb.idCommand, IDC_MPC_Exit
-;	mov tbb.fsStyle, TBSTYLE_BUTTON
-;	Invoke SendMessage, hMPC_ToolbarScreen, TB_ADDBUTTONS, 1, Addr tbb
-	
 ;	mov tbb.iBitmap, TBID_MPC_A_NORMAL
 ;	mov tbb.idCommand, IDC_MPC_Aspect
 ;	mov tbb.fsStyle, TBSTYLE_BUTTON or TBSTYLE_DROPDOWN ; or TBSTYLE_AUTOSIZE 

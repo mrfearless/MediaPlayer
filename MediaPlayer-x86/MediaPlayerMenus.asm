@@ -10,15 +10,10 @@
 ;
 ;==============================================================================
 
-MPMainMenuInit              PROTO hWin:DWORD
-MPMainMenuUpdate            PROTO hWin:DWORD
-
-MPContextMenuInit           PROTO hWin:DWORD
-MPContextMenuUpdate         PROTO hWin:DWORD
+MPLoadMenuBitmaps           PROTO hWin:DWORD
+MPSetMenuBitmaps            PROTO hWin:DWORD
 MPContextMenuTrack          PROTO hWin:DWORD, wParam:WPARAM, lParam:LPARAM
 
-MPMainMenuLoadLanguage      PROTO hWin:DWORD, dwLangID:DWORD
-MPContextMenuLoadLanguage   PROTO hContextMenu:DWORD, dwLangID:DWORD
 
 .CONST
 ; MediaPlayer Context Menu Bitmap IDs
@@ -80,125 +75,222 @@ IDM_LANG_French         EQU 10052
 IDM_LANG_German         EQU 10053
 IDM_LANG_Polish         EQU 10054
 IDM_LANG_Italian        EQU 10055
+IDM_LANG_Spanish        EQU 10056
 IDM_HELP_Help           EQU 10101
 IDM_HELP_About          EQU 10102
 
 ; MediaPlayer Context Menu IDs
 IDM_CONTEXTMENU         EQU 11000
 
-; Languages Supported:
-IDLANG_DEFAULT          EQU 0
-IDLANG_ENGLISH          EQU 1
-IDLANG_FRENCH           EQU 2
-IDLANG_GERMAN           EQU 3
-IDLANG_POLISH           EQU 4
-IDLANG_ITALIAN          EQU 5
 
-; Primary
-LANG_NEUTRAL            EQU 000h
-LANG_ENGLISH            EQU 009h
-LANG_FRENCH             EQU 00Ch
-LANG_GERMAN             EQU 007h
-LANG_POLISH             EQU 015h
-LANG_ITALIAN            EQU 010h
-
-; Sublang
-SUBLANG_NEUTRAL         EQU 000h
-SUBLANG_DEFAULT         EQU 001h
-SUBLANG_ENGLISH_US      EQU 001h
-SUBLANG_ENGLISH_UK      EQU 002h
-SUBLANG_FRENCH          EQU 001h
-SUBLANG_GERMAN          EQU 001h
-SUBLANG_POLISH_POLAND   EQU 001h
-SUBLANG_ITALIAN         EQU 001h
-
-.DATA
-
+.DATA?
+hBmp_MM_Open            DD ?
+hBmp_MM_Stop            DD ?
+hBmp_MM_Pause           DD ?
+hBmp_MM_Play            DD ?
+hBmp_MM_Step            DD ?
+hBmp_MM_Exit            DD ?
+hBmp_MM_Fullscreen      DD ?
+hBmp_MM_About           DD ?
+hBmp_MM_Stretch         DD ?
+hBmp_MM_Normal          DD ?
+hBmp_MM_Aspect          DD ?
+hBmp_MM_Help            DD ?
+hBmp_MM_Step10f         DD ?
+hBmp_MM_Step10b         DD ?
+hBmp_MM_Faster          DD ?
+hBmp_MM_Slower          DD ?
+hBmp_MM_Speed           DD ?
+hBmpFileMRU             DD ?
+hBmpFileMRUClear        DD ?
 
 .CODE
 
 ;------------------------------------------------------------------------------
-; MPMainMenuInit - initialize the main menu
+; MPLoadMenuBitmaps - load menu bitmaps (compressed or uncompressed)
 ;------------------------------------------------------------------------------
-MPMainMenuInit PROC hWin:DWORD
-    LOCAL hBitmap:DWORD
-    
-    Invoke MPMainMenuLoadLanguage, hWin, g_LangID
-    mov hMediaPlayerMainMenu, eax
-    
+MPLoadMenuBitmaps PROC hWin:DWORD
+
     ; Load bitmaps for File submenu
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_OPEN
+    ELSE
     Invoke LoadImage, hInstance, BMP_MM_OPEN, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_FILE_Open, MF_BYCOMMAND, hBitmap, 0
-    
+    ENDIF
+    mov hBmp_MM_Open, eax
+
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_EXIT
+    ELSE
     Invoke LoadImage, hInstance, BMP_MM_EXIT, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_FILE_Exit, MF_BYCOMMAND, hBitmap, 0
+    ENDIF
+    mov hBmp_MM_Exit, eax
     
     ; Load bitmaps for Media Controls submenu
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_STOP
+    ELSE
     Invoke LoadImage, hInstance, BMP_MM_STOP, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Stop, MF_BYCOMMAND, hBitmap, 0    
-    
+    ENDIF
+    mov hBmp_MM_Stop, eax
+ 
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_PAUSE
+    ELSE
     Invoke LoadImage, hInstance, BMP_MM_PAUSE, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Pause, MF_BYCOMMAND, hBitmap, 0   
-    
+    ENDIF
+    mov hBmp_MM_Pause, eax
+
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_PLAY
+    ELSE
     Invoke LoadImage, hInstance, BMP_MM_PLAY, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Play, MF_BYCOMMAND, hBitmap, 0   
-    
+    ENDIF
+    mov hBmp_MM_Play, eax
+  
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_STEP
+    ELSE
     Invoke LoadImage, hInstance, BMP_MM_STEP, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Step, MF_BYCOMMAND, hBitmap, 0   
-    
+    ENDIF
+    mov hBmp_MM_Step, eax
+
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_STEP10F
+    ELSE
     Invoke LoadImage, hInstance, BMP_MM_STEP10F, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Step10F, MF_BYCOMMAND, hBitmap, 0 
-    
+    ENDIF
+    mov hBmp_MM_Step10f, eax
+
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_STEP10B
+    ELSE
     Invoke LoadImage, hInstance, BMP_MM_STEP10B, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Step10B, MF_BYCOMMAND, hBitmap, 0 
-    
+    ENDIF
+    mov hBmp_MM_Step10b, eax
+
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_FULLSCREEN
+    ELSE
     Invoke LoadImage, hInstance, BMP_MM_FULLSCREEN, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Fullscreen, MF_BYCOMMAND, hBitmap, 0   
+    ENDIF
+    mov hBmp_MM_Fullscreen, eax
     
     ; Load bitmaps for Video Aspect submenu
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_ASPECT
+    ELSE
     Invoke LoadImage, hInstance, BMP_MM_ASPECT, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Aspect, MF_BYCOMMAND, hBitmap, 0 
-    
+    ENDIF
+    mov hBmp_MM_Aspect, eax
+
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_STRETCH
+    ELSE
     Invoke LoadImage, hInstance, BMP_MM_STRETCH, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_VA_Stretch, MF_BYCOMMAND, hBitmap, 0 
-    
+    ENDIF
+    mov hBmp_MM_Stretch, eax
+
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_NORMAL
+    ELSE
     Invoke LoadImage, hInstance, BMP_MM_NORMAL, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_VA_Normal, MF_BYCOMMAND, hBitmap, 0 
+    ENDIF
+    mov hBmp_MM_Normal, eax
     
     ; Load bitmaps for Playback Speed submenu
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_SPEED
+    ELSE
     Invoke LoadImage, hInstance, BMP_MM_SPEED, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Speed, MF_BYCOMMAND, hBitmap, 0 
-    
-    Invoke LoadImage, hInstance, BMP_MM_FASTER, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_PS_Faster, MF_BYCOMMAND, hBitmap, 0 
-    
-    Invoke LoadImage, hInstance, BMP_MM_SLOWER, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_PS_Slower, MF_BYCOMMAND, hBitmap, 0     
-    
-    ; Load bitmaps for Help submenu
-    Invoke LoadImage, hInstance, BMP_MM_HELP, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_HELP_Help, MF_BYCOMMAND, hBitmap, 0  
-    
-    Invoke LoadImage, hInstance, BMP_MM_ABOUT, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_HELP_About, MF_BYCOMMAND, hBitmap, 0  
+    ENDIF
+    mov hBmp_MM_Speed, eax
 
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_FASTER
+    ELSE
+    Invoke LoadImage, hInstance, BMP_MM_FASTER, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
+    ENDIF
+    mov hBmp_MM_Faster, eax
+
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_SLOWER
+    ELSE
+    Invoke LoadImage, hInstance, BMP_MM_SLOWER, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
+    ENDIF
+    mov hBmp_MM_Slower, eax
+     
+    ; Load bitmaps for Help submenu
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_HELP
+    ELSE
+    Invoke LoadImage, hInstance, BMP_MM_HELP, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
+    ENDIF
+    mov hBmp_MM_Help, eax
+
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_MM_ABOUT
+    ELSE
+    Invoke LoadImage, hInstance, BMP_MM_ABOUT, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
+    ENDIF
+    mov hBmp_MM_About, eax
+
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_FILE_MRU
+    ELSE
+    Invoke LoadImage, hInstance, BMP_FILE_MRU, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
+    ENDIF
+    mov hBmpFileMRU, eax
+    
+    IFDEF MP_RTLC_RESOURCES
+    Invoke BitmapCreateFromCompressedRes, hInstance, BMP_FILE_MRU_CLEAR
+    ELSE
+    Invoke LoadImage, hInstance, BMP_FILE_MRU_CLEAR, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
+    ENDIF
+    mov hBmpFileMRUClear, eax
+
+    ret
+MPLoadMenuBitmaps ENDP
+
+;------------------------------------------------------------------------------
+; MPSetMenuBitmaps
+;------------------------------------------------------------------------------
+MPSetMenuBitmaps PROC hWin:DWORD
+    
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_FILE_Open, MF_BYCOMMAND, hBmp_MM_Open, 0
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_FILE_Exit, MF_BYCOMMAND, hBmp_MM_Exit, 0
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Stop, MF_BYCOMMAND, hBmp_MM_Stop, 0    
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Pause, MF_BYCOMMAND, hBmp_MM_Pause, 0   
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Play, MF_BYCOMMAND, hBmp_MM_Play, 0   
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Step, MF_BYCOMMAND, hBmp_MM_Step, 0   
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Step10F, MF_BYCOMMAND, hBmp_MM_Step10f, 0 
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Step10B, MF_BYCOMMAND, hBmp_MM_Step10b, 0 
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Fullscreen, MF_BYCOMMAND, hBmp_MM_Fullscreen, 0   
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Aspect, MF_BYCOMMAND, hBmp_MM_Aspect, 0 
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_VA_Stretch, MF_BYCOMMAND, hBmp_MM_Stretch, 0 
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_VA_Normal, MF_BYCOMMAND, hBmp_MM_Normal, 0 
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_Speed, MF_BYCOMMAND, hBmp_MM_Speed, 0 
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_PS_Faster, MF_BYCOMMAND, hBmp_MM_Faster, 0 
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_MC_PS_Slower, MF_BYCOMMAND, hBmp_MM_Slower, 0     
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_HELP_Help, MF_BYCOMMAND, hBmp_MM_Help, 0  
+    Invoke SetMenuItemBitmaps, hMediaPlayerMainMenu, IDM_HELP_About, MF_BYCOMMAND, hBmp_MM_About, 0
+    
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_FILE_Open, MF_BYCOMMAND, hBmp_MM_Open, 0
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Stop, MF_BYCOMMAND, hBmp_MM_Stop, 0
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Pause, MF_BYCOMMAND, hBmp_MM_Pause, 0
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Play, MF_BYCOMMAND, hBmp_MM_Play, 0
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Step, MF_BYCOMMAND, hBmp_MM_Step, 0
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Fullscreen, MF_BYCOMMAND, hBmp_MM_Fullscreen, 0
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Aspect, MF_BYCOMMAND, hBmp_MM_Aspect, 0 
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_VA_Stretch, MF_BYCOMMAND, hBmp_MM_Stretch, 0
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_VA_Normal, MF_BYCOMMAND, hBmp_MM_Normal, 0
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Speed, MF_BYCOMMAND, hBmp_MM_Speed, 0 
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_PS_Slower, MF_BYCOMMAND, hBmp_MM_Slower, 0
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_PS_Faster, MF_BYCOMMAND, hBmp_MM_Faster, 0
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Step10F, MF_BYCOMMAND, hBmp_MM_Step10f, 0 
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Step10B, MF_BYCOMMAND, hBmp_MM_Step10b, 0 
+    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_FILE_Exit, MF_BYCOMMAND, hBmp_MM_Exit, 0
+    
     ; Checkmark the selected language
     mov eax, g_LangID
     .IF eax == IDLANG_DEFAULT
@@ -213,181 +305,13 @@ MPMainMenuInit PROC hWin:DWORD
         Invoke CheckMenuItem, hMediaPlayerMainMenu, IDM_LANG_Polish, MF_CHECKED
     .ELSEIF eax == IDLANG_ITALIAN
         Invoke CheckMenuItem, hMediaPlayerMainMenu, IDM_LANG_Italian, MF_CHECKED
+    .ELSEIF eax == IDLANG_SPANISH
+        Invoke CheckMenuItem, hMediaPlayerMainMenu, IDM_LANG_Spanish, MF_CHECKED
     .ENDIF
     
-    Invoke DrawMenuBar, hWin
     ret
-MPMainMenuInit ENDP
 
-;------------------------------------------------------------------------------
-; MPMainMenuUpdate
-;------------------------------------------------------------------------------
-MPMainMenuUpdate PROC hWin:DWORD
-    
-    
-    ret
-MPMainMenuUpdate ENDP
-
-;------------------------------------------------------------------------------
-; MPContextMenuInit - initialize the context menu
-;------------------------------------------------------------------------------
-MPContextMenuInit PROC hWin:DWORD
-    LOCAL hMenu:DWORD
-    LOCAL hBitmap:DWORD
-    LOCAL hSubMenu:DWORD
-    LOCAL mi:MENUITEMINFO
-
-    IFDEF DEBUG32
-    ;PrintText 'MPContextMenuInit'
-    ENDIF
-    
-    ; https://stackoverflow.com/questions/18603571/c-win32-creating-a-popup-menu-from-resource
-    Invoke MPContextMenuLoadLanguage, hMediaPlayerContextMenu, g_LangID
-    ;Invoke LoadMenu, hInstance, IDM_CONTEXTMENU
-    ;mov hMenu, eax
-    ;Invoke GetSubMenu, hMenu, 0
-    mov hMediaPlayerContextMenu, eax
-
-;    Invoke CreatePopupMenu
-;    mov hMediaPlayerContextMenu, eax
-;    
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_STRING, IDM_CM_Open, Addr szCM_Open
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_SEPARATOR, 0, 0
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_STRING, IDM_CM_Stop, Addr szCM_Stop
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_STRING, IDM_CM_Pause, Addr szCM_Pause
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_SEPARATOR, 0, 0
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_STRING, IDM_CM_Play, Addr szCM_Play
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_STRING, IDM_CM_Step, Addr szCM_Step
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_SEPARATOR, 0, 0
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_STRING, IDM_CM_Step10B, Addr szCM_Step10B
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_STRING, IDM_CM_Step10F, Addr szCM_Step10F
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_SEPARATOR, 0, 0
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_STRING, IDM_CM_Fullscreen, Addr szCM_EnterFS
-;    
-;    ; Add submenu 'Video Aspect' to rght click menu
-;    Invoke MPAspectMenuInit, hWin
-;    mov hSubMenu, eax
-;    mov mi.cbSize, SIZEOF MENUITEMINFO
-;    mov mi.fMask, MIIM_SUBMENU + MIIM_STRING + MIIM_ID
-;    mov mi.wID, IDM_CM_Aspect
-;    mov eax, hSubMenu
-;    mov mi.hSubMenu, eax
-;    lea eax, szCM_Aspect
-;    mov mi.dwTypeData, eax
-;    Invoke InsertMenuItem, hMediaPlayerContextMenu, IDM_CM_Aspect, FALSE, Addr mi
-;    mov mi.fMask, MIIM_STATE
-;    mov mi.wID, 0
-;    mov mi.hSubMenu, 0
-;    mov mi.dwTypeData, 0    
-;    
-;    ; Add submenu 'Playback Speed' to rght click menu
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_SEPARATOR, 0, 0
-;    Invoke MPSpeedMenuInit, hWin
-;    mov hSubMenu, eax
-;    mov mi.cbSize, SIZEOF MENUITEMINFO
-;    mov mi.fMask, MIIM_SUBMENU + MIIM_STRING + MIIM_ID
-;    mov mi.wID, IDM_CM_Speed
-;    mov eax, hSubMenu
-;    mov mi.hSubMenu, eax
-;    lea eax, szCM_Speed
-;    mov mi.dwTypeData, eax
-;    Invoke InsertMenuItem, hMediaPlayerContextMenu, IDM_CM_Speed, FALSE, Addr mi
-;    mov mi.fMask, MIIM_STATE
-;    mov mi.wID, 0
-;    mov mi.hSubMenu, 0
-;    mov mi.dwTypeData, 0    
-;    
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_SEPARATOR, 0, 0
-;    Invoke AppendMenu, hMediaPlayerContextMenu, MF_STRING, IDM_CM_Exit, Addr szCM_Exit
-
-    Invoke LoadImage, hInstance, BMP_CM_OPEN, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_FILE_Open, MF_BYCOMMAND, hBitmap, 0
-
-    Invoke LoadImage, hInstance, BMP_CM_STOP, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Stop, MF_BYCOMMAND, hBitmap, 0
-
-    Invoke LoadImage, hInstance, BMP_CM_PAUSE, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Pause, MF_BYCOMMAND, hBitmap, 0
-
-    Invoke LoadImage, hInstance, BMP_CM_PLAY, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Play, MF_BYCOMMAND, hBitmap, 0
-
-    Invoke LoadImage, hInstance, BMP_CM_STEP, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Step, MF_BYCOMMAND, hBitmap, 0
-
-    Invoke LoadImage, hInstance, BMP_CM_FULLSCREEN, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Fullscreen, MF_BYCOMMAND, hBitmap, 0
-    
-    ; Load bitmaps for 'Aspect Ratio' submenu
-    Invoke LoadImage, hInstance, BMP_CM_ASPECT, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Aspect, MF_BYCOMMAND, hBitmap, 0 
-
-    Invoke LoadImage, hInstance, BMP_CM_STRETCH, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_VA_Stretch, MF_BYCOMMAND, hBitmap, 0
-    
-    Invoke LoadImage, hInstance, BMP_CM_NORMAL, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_VA_Normal, MF_BYCOMMAND, hBitmap, 0
-    
-    ; Load bitmaps for 'Playback Speed' submenu
-    Invoke LoadImage, hInstance, BMP_CM_SPEED, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Speed, MF_BYCOMMAND, hBitmap, 0 
-
-    Invoke LoadImage, hInstance, BMP_CM_SLOWER, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_PS_Slower, MF_BYCOMMAND, hBitmap, 0
-    
-    Invoke LoadImage, hInstance, BMP_CM_FASTER, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_PS_Faster, MF_BYCOMMAND, hBitmap, 0
-    
-    Invoke LoadImage, hInstance, BMP_CM_STEP10F, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Step10F, MF_BYCOMMAND, hBitmap, 0 
-    
-    Invoke LoadImage, hInstance, BMP_CM_STEP10B, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_MC_Step10B, MF_BYCOMMAND, hBitmap, 0 
-
-    Invoke LoadImage, hInstance, BMP_CM_EXIT, IMAGE_BITMAP, 0, 0, LR_SHARED or LR_DEFAULTCOLOR
-    mov hBitmap, eax
-    Invoke SetMenuItemBitmaps, hMediaPlayerContextMenu, IDM_FILE_Exit, MF_BYCOMMAND, hBitmap, 0
-    
-    ret
-MPContextMenuInit ENDP
-
-;------------------------------------------------------------------------------
-; MPContextMenuUpdate
-;------------------------------------------------------------------------------
-MPContextMenuUpdate PROC hWin:DWORD
-;    LOCAL mi:MENUITEMINFO
-;    
-;    IFDEF DEBUG32
-;    ;PrintText 'MPContextMenuUpdate'
-;    ENDIF
-;    
-;    mov mi.cbSize, SIZEOF MENUITEMINFO
-;    mov mi.fMask, MIIM_STRING
-;    
-;    .IF g_Fullscreen == TRUE    
-;        lea eax, szCM_ExitFS
-;    .ELSE
-;        lea eax, szCM_EnterFS
-;    .ENDIF
-;    mov mi.dwTypeData, eax
-;    Invoke SetMenuItemInfo, hMediaPlayerContextMenu, IDM_MC_Fullscreen, FALSE, Addr mi
-
-    ret
-MPContextMenuUpdate ENDP
+MPSetMenuBitmaps ENDP
 
 ;------------------------------------------------------------------------------
 ; MPContextMenuTrack (WM_CONTEXTMENU)
@@ -428,154 +352,5 @@ MPContextMenuTrack PROC hWin:DWORD, wParam:WPARAM, lParam:LPARAM
     
     ret
 MPContextMenuTrack ENDP
-
-;------------------------------------------------------------------------------
-; MPMainMenuLoadLanguage - Load main menu resources for a particular language 
-;------------------------------------------------------------------------------
-MPMainMenuLoadLanguage PROC hWin:DWORD, dwLangID:DWORD
-    LOCAL hMainMenu:DWORD
-    LOCAL hRes:DWORD
-    LOCAL hResData:DWORD
-    LOCAL pResData:DWORD
-    
-    IFDEF DEBUG32
-    ;PrintText 'MPMainMenuLoadLanguage'
-    ;PrintDec dwLangID
-    ENDIF
-    
-    Invoke GetMenu, hWin
-    mov hMainMenu, eax
-    .IF eax != 0
-        Invoke DestroyMenu, hMainMenu
-        mov hMainMenu, 0
-    .ENDIF
-    
-    ; Find Main Menu Resource
-    mov eax, dwLangID
-    .IF eax == IDLANG_DEFAULT
-        Invoke LoadMenu, hInstance, IDM_MENU
-        .IF eax != NULL
-            mov hMainMenu, eax
-            Invoke SetMenu, hWin, hMainMenu
-            mov eax, hMainMenu
-        .ENDIF
-        ret
-
-    .ELSEIF eax == IDLANG_ENGLISH
-        Invoke FindResourceEx, NULL, RT_MENU, IDM_MENU, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_UK)
-    
-    .ELSEIF eax == IDLANG_FRENCH
-        Invoke FindResourceEx, NULL, RT_MENU, IDM_MENU, MAKELANGID(LANG_FRENCH, SUBLANG_FRENCH)
-    
-    .ELSEIF eax == IDLANG_GERMAN
-        Invoke FindResourceEx, NULL, RT_MENU, IDM_MENU, MAKELANGID(LANG_GERMAN, SUBLANG_GERMAN)
-        
-    .ELSEIF eax == IDLANG_POLISH
-        Invoke FindResourceEx, NULL, RT_MENU, IDM_MENU, MAKELANGID(LANG_POLISH, SUBLANG_POLISH_POLAND)
-        
-    .ELSEIF eax == IDLANG_ITALIAN
-        Invoke FindResourceEx, NULL, RT_MENU, IDM_MENU, MAKELANGID(LANG_ITALIAN, SUBLANG_ITALIAN)
-        
-    .ELSE
-        Invoke LoadMenu, hInstance, IDM_MENU
-        .IF eax != NULL
-            mov hMainMenu, eax
-            Invoke SetMenu, hWin, hMainMenu
-            mov eax, hMainMenu
-        .ENDIF
-        ret
-        
-    .ENDIF
-    
-    ; Load Main Menu resource
-    .IF eax != 0
-        mov hRes, eax
-        Invoke LoadResource, hInstance, hRes
-        .IF eax != 0
-            mov hResData, eax
-            Invoke LockResource, hResData
-            .IF eax != 0
-                mov pResData, eax
-                Invoke LoadMenuIndirect, pResData
-                .IF eax != 0
-                    mov hMainMenu, eax
-                    Invoke SetMenu, hWin, hMainMenu
-                    mov eax, hMainMenu
-                .ENDIF
-            .ENDIF
-        .ENDIF
-    .ENDIF
-
-    ret
-MPMainMenuLoadLanguage ENDP
-
-;------------------------------------------------------------------------------
-; MPContextMenuLoadLanguage - Load Context menu resources for a particular language 
-;------------------------------------------------------------------------------
-MPContextMenuLoadLanguage PROC hContextMenu:DWORD, dwLangID:DWORD
-    LOCAL hMenu:DWORD
-    LOCAL hRes:DWORD
-    LOCAL hResData:DWORD
-    LOCAL pResData:DWORD
-
-    
-    IFDEF DEBUG32
-    ;PrintText 'MPContextMenuLoadLanguage'
-    ;PrintDec dwLangID
-    ENDIF
-    
-    .IF hContextMenu != 0
-        Invoke DestroyMenu, hContextMenu
-    .ENDIF
-    
-    ; Find Context Menu Resource
-    mov eax, dwLangID
-    .IF eax == IDLANG_DEFAULT
-        Invoke LoadMenu, hInstance, IDM_CONTEXTMENU
-        mov hMenu, eax
-        Invoke GetSubMenu, hMenu, 0
-        ret
-
-    .ELSEIF eax == IDLANG_ENGLISH
-        Invoke FindResourceEx, NULL, RT_MENU, IDM_CONTEXTMENU, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_UK)
-    
-    .ELSEIF eax == IDLANG_FRENCH
-        Invoke FindResourceEx, NULL, RT_MENU, IDM_CONTEXTMENU, MAKELANGID(LANG_FRENCH, SUBLANG_FRENCH)
-    
-    .ELSEIF eax == IDLANG_GERMAN
-        Invoke FindResourceEx, NULL, RT_MENU, IDM_CONTEXTMENU, MAKELANGID(LANG_GERMAN, SUBLANG_GERMAN)
-        
-    .ELSEIF eax == IDLANG_POLISH
-        Invoke FindResourceEx, NULL, RT_MENU, IDM_MENU, MAKELANGID(LANG_POLISH, SUBLANG_POLISH_POLAND)
-        
-    .ELSEIF eax == IDLANG_ITALIAN
-        Invoke FindResourceEx, NULL, RT_MENU, IDM_MENU, MAKELANGID(LANG_ITALIAN, SUBLANG_ITALIAN)
-        
-    .ELSE
-        Invoke LoadMenu, hInstance, IDM_CONTEXTMENU
-        mov hMenu, eax
-        Invoke GetSubMenu, hMenu, 0
-        ret
-        
-    .ENDIF
-    
-    ; Load Context Menu Resource
-    .IF eax != 0
-        mov hRes, eax
-        Invoke LoadResource, hInstance, hRes
-        .IF eax != 0
-            mov hResData, eax
-            Invoke LockResource, hResData
-            .IF eax != 0
-                mov pResData, eax
-                Invoke LoadMenuIndirect, pResData
-                mov hMenu, eax
-                Invoke GetSubMenu, hMenu, 0
-            .ENDIF
-        .ENDIF
-    .ENDIF
-    
-    ret
-MPContextMenuLoadLanguage ENDP
 
 

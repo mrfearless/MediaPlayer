@@ -4,22 +4,41 @@
 #include "Res/MediaPlayerAboutDlg.rc"
 #include "Res/MediaPlayerControlsDlg.rc"
 
-#include "Res/MediaPlayerMnu.rc"
-#include "Res/MediaPlayerMnu_EN.rc"
-#include "Res/MediaPlayerMnu_FR.rc"
-#include "Res/MediaPlayerMnu_DE.rc"
-#include "Res/MediaPlayerMnu_PL.rc"
-#include "Res/MediaPlayerMnu_IT.rc"
+#include "Res/EasterEgg.rc"
 
-#include "Res/ContextMenuMnu.rc"
-#include "Res/ContextMenuMnu_EN.rc"
-#include "Res/ContextMenuMnu_FR.rc"
-#include "Res/ContextMenuMnu_DE.rc"
-#include "Res/ContextMenuMnu_PL.rc"
-#include "Res/ContextMenuMnu_IT.rc"
+#ifdef MP_RTLC_RESOURCES
+#else
+  #include "Res/MediaPlayerMnu.rc"
+  #include "Res/MediaPlayerMnu_EN.rc"
+  #include "Res/MediaPlayerMnu_FR.rc"
+  #include "Res/MediaPlayerMnu_DE.rc"
+  #include "Res/MediaPlayerMnu_PL.rc"
+  #include "Res/MediaPlayerMnu_IT.rc"
+  #include "Res/MediaPlayerMnu_ES.rc"
+  
+  #include "Res/ContextMenuMnu.rc"
+  #include "Res/ContextMenuMnu_EN.rc"
+  #include "Res/ContextMenuMnu_FR.rc"
+  #include "Res/ContextMenuMnu_DE.rc"
+  #include "Res/ContextMenuMnu_PL.rc"
+  #include "Res/ContextMenuMnu_IT.rc"
+  #include "Res/ContextMenuMnu_ES.rc"
+#endif
 
 #include "Res/MediaPlayerStr.rc"
 
 #include "Res/MediaPlayerAcl.rc"
 #include "Res/MediaPlayerVer.rc"
-#include "Res/MediaPlayerRes.rc"
+//#include "Res/MediaPlayerRes.rc"
+
+#ifdef MP_RTLC_RESOURCES
+//
+// Using RTLC Compressed Resources
+//
+  #include "Res/MediaPlayerRes.rc.rtlc"
+#else
+//
+// Using Normal Uncompressed Resources
+//
+  #include "Res/MediaPlayerRes.rc.normal"
+#endif

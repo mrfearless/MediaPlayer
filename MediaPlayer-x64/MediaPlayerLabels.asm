@@ -30,6 +30,8 @@ MPL_FS_BACKCOLOR        EQU MAINWINDOW_FS_BACKCOLOR
 MPL_TEXTCOLOR           EQU RGB(0,0,0)
 MPL_FS_TEXTCOLOR        EQU RGB(240,240,240)
 
+MPL_MAXTEXTLENGTH       EQU 64
+
 .DATA
 
 IFDEF __UNICODE__
@@ -223,7 +225,7 @@ _MPLPaint PROC FRAME USES RBX hWin:QWORD
     LOCAL hBrush:QWORD
     LOCAL hFont:QWORD
     LOCAL qwStyle:QWORD
-    LOCAL szText[32]:BYTE
+    LOCAL szText[MPL_MAXTEXTLENGTH]:BYTE
     
     Invoke IsWindowVisible, hWin
     .IF rax == FALSE
@@ -233,7 +235,11 @@ _MPLPaint PROC FRAME USES RBX hWin:QWORD
     
     Invoke GetWindowLongPtr, hWin, GWL_STYLE
     mov qwStyle, rax
-    Invoke GetWindowText, hWin, Addr szText, 16
+    IFDEF __UNICODE__
+    Invoke GetWindowText, hWin, Addr szText, (MPL_MAXTEXTLENGTH /2) ; chars
+    ELSE
+    Invoke GetWindowText, hWin, Addr szText, MPL_MAXTEXTLENGTH
+    ENDIF
     mov rax, hPosDurFont
     mov hFont, rax
     

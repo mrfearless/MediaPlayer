@@ -1158,6 +1158,10 @@ MPSBStepPosition PROC FRAME USES RBX hControl:QWORD, dwSeconds:DWORD, bForward:Q
                 ret
             .ENDIF
         
+            .IF dwCurrentRate > MFP_DEFAULT_RATE
+                ret ; limit step 10 to default play speed or below
+            .ENDIF
+        
             Invoke GetWindowLong, hControl, @MPSB_DurationMS
             mov dwDurationMS, eax
             ;Invoke GetWindowLong, hControl, @MPSB_PositionMS

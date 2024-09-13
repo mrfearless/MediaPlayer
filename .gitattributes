@@ -13,6 +13,7 @@
 *.bmp binary
 *.png binary
 *.jpg binary
+*.rtlc binary
 *.rst linguist-documentation
 *.bat linguist-language=Text
 *.tpl linguist-language=Text
@@ -21,6 +22,7 @@
 *.asm linguist-language=Assembly
 *.inc linguist-language=Assembly
 *.rc linguist-language=Text
+*.h linguist-language=Text
 *.hsl linguist-language=Text
 makefile linguist-language=Text
 conf.py linguist-language=Python

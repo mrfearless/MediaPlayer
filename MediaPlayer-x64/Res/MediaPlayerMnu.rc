@@ -20,6 +20,7 @@
 #define IDM_LANG_German 10053
 #define IDM_LANG_Polish 10054
 #define IDM_LANG_Italian 10055
+#define IDM_LANG_Spanish 10056
 #define IDM_HELP_About 10102
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
@@ -64,6 +65,7 @@ BEGIN
     MENUITEM "Deutsch",IDM_LANG_German
     MENUITEM "Polski",IDM_LANG_Polish
     MENUITEM "Italiano",IDM_LANG_Italian
+    MENUITEM "Español",IDM_LANG_Spanish
   END
   POPUP "&Help"
   BEGIN

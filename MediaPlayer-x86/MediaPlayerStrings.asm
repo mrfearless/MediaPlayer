@@ -1,4 +1,5 @@
 
+
 MPStringsInit           PROTO
 MPLoadStringLanguage    PROTO dwStringID:DWORD, lpszString:DWORD, dwStringSize:DWORD
 
@@ -10,6 +11,7 @@ LANG_STRINGSIZE_SMALL   EQU 64
 ENDIF
 
 ; Stringtable Base Language ID 
+STRINGID_START          EQU 1
 TIP_MPC_Open            EQU 1
 TIP_MPC_Stop            EQU 2
 TIP_MPC_Pause           EQU 3
@@ -25,6 +27,7 @@ TIP_MPC_Step10B         EQU 12
 TIP_MPC_Faster          EQU 13
 TIP_MPC_Slower          EQU 14
 TEXT_MRUClear           EQU 20
+STRINGID_FINISH         EQU 20
 
 ; US starts at 101
 ; EN starts at 151
@@ -32,6 +35,7 @@ TEXT_MRUClear           EQU 20
 ; DE starts at 251
 ; PL starts at 301
 ; IT starts at 351
+; ES starts at 401
 
 .DATA
 
@@ -106,7 +110,7 @@ MPLoadStringLanguage PROC USES EBX dwStringID:DWORD, lpszString:DWORD, dwStringS
     .ENDIF
     
     mov eax, g_LangID
-    mov ebx, 50
+    mov ebx, LANG_MAX_IDS ;50
     mul ebx
     add eax, 100
     mov dwLangIDBase, eax

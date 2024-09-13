@@ -299,10 +299,10 @@ IniMRULoadListToMenu PROC hWin:DWORD, lpszIniFilename:DWORD, dwMenuInsertID:DWOR
 	.IF eax < MRU_MAXFILES ;10 ; 9 MRUs max
 	    Invoke dwtoa, nMRUEntry, Addr szMRUEntry
 		IFDEF __UNICODE__
-		Invoke MFP_ConvertStringToWide, Addr szMRUEntry
+		Invoke MFPConvertStringToWide, Addr szMRUEntry
         mov pWideMRUEntry, eax
         Invoke lstrcpy, Addr szMRUEntry, pWideMRUEntry
-        Invoke MFP_ConvertStringFree, pWideMRUEntry
+        Invoke MFPConvertStringFree, pWideMRUEntry
 		ENDIF
 		Invoke GetPrivateProfileString, Addr szMRUSection, Addr szMRUEntry, Addr szIniDefault, Addr szMRUFilename, SIZEOF szMRUFilename, lpszIniFilename
 		.IF eax != 0
@@ -364,10 +364,10 @@ IniMRUClearListFromMenu PROC hWin:DWORD, lpszIniFilename:DWORD, dwMenuInsertID:D
         Invoke RemoveMenu, hMainMenu, nMenuID, MF_BYCOMMAND
 	    Invoke dwtoa, nMRUEntry, Addr szMRUEntry
 		IFDEF __UNICODE__
-		Invoke MFP_ConvertStringToWide, Addr szMRUEntry
+		Invoke MFPConvertStringToWide, Addr szMRUEntry
         mov pWideMRUEntry, eax
         Invoke lstrcpy, Addr szMRUEntry, pWideMRUEntry
-        Invoke MFP_ConvertStringFree, pWideMRUEntry
+        Invoke MFPConvertStringFree, pWideMRUEntry
 		ENDIF
         
         Invoke WritePrivateProfileString, Addr szMRUSection, Addr szMRUEntry, NULL, lpszIniFilename
@@ -409,10 +409,10 @@ IniMRUEntrySaveFilename PROC hWin:DWORD, lpszFilename:DWORD, lpszIniFilename:DWO
 	.WHILE eax < MRU_MAXFILES ;10 ; 9 MRUs
 		Invoke dwtoa, nMRUFrom, Addr szMRUFrom
 		IFDEF __UNICODE__
-		Invoke MFP_ConvertStringToWide, Addr szMRUFrom
+		Invoke MFPConvertStringToWide, Addr szMRUFrom
         mov pWideMRUFrom, eax
         Invoke lstrcpy, Addr szMRUFrom, pWideMRUFrom
-        Invoke MFP_ConvertStringFree, pWideMRUFrom
+        Invoke MFPConvertStringFree, pWideMRUFrom
 		ENDIF
 		Invoke GetPrivateProfileString, Addr szMRUSection, Addr szMRUFrom, Addr szIniDefault, Addr szMRUFilename, SIZEOF szMRUFilename, lpszIniFilename
 		.IF eax != 0
@@ -433,14 +433,14 @@ IniMRUEntrySaveFilename PROC hWin:DWORD, lpszFilename:DWORD, lpszIniFilename:DWO
 						Invoke dwtoa, nMRUFrom, Addr szMRUFrom
 						Invoke dwtoa, nMRUTo, Addr szMRUTo
                 		IFDEF __UNICODE__
-                		Invoke MFP_ConvertStringToWide, Addr szMRUFrom
+                		Invoke MFPConvertStringToWide, Addr szMRUFrom
                         mov pWideMRUFrom, eax
                         Invoke lstrcpy, Addr szMRUFrom, pWideMRUFrom
-                        Invoke MFP_ConvertStringFree, pWideMRUFrom
-                		Invoke MFP_ConvertStringToWide, Addr szMRUTo
+                        Invoke MFPConvertStringFree, pWideMRUFrom
+                		Invoke MFPConvertStringToWide, Addr szMRUTo
                         mov pWideMRUTo, eax
                         Invoke lstrcpy, Addr szMRUTo, pWideMRUTo
-                        Invoke MFP_ConvertStringFree, pWideMRUTo
+                        Invoke MFPConvertStringFree, pWideMRUTo
                 		ENDIF
 						Invoke GetPrivateProfileString, Addr szMRUSection, Addr szMRUFrom, Addr szIniDefault, Addr szMRUFilename, SIZEOF szMRUFilename, lpszIniFilename
 						.IF eax != 0
@@ -479,14 +479,14 @@ IniMRUEntrySaveFilename PROC hWin:DWORD, lpszFilename:DWORD, lpszIniFilename:DWO
 		Invoke dwtoa, nMRUFrom, Addr szMRUFrom
 		Invoke dwtoa, nMRUTo, Addr szMRUTo
 		IFDEF __UNICODE__
-		Invoke MFP_ConvertStringToWide, Addr szMRUFrom
+		Invoke MFPConvertStringToWide, Addr szMRUFrom
         mov pWideMRUFrom, eax
         Invoke lstrcpy, Addr szMRUFrom, pWideMRUFrom
-        Invoke MFP_ConvertStringFree, pWideMRUFrom
-		Invoke MFP_ConvertStringToWide, Addr szMRUTo
+        Invoke MFPConvertStringFree, pWideMRUFrom
+		Invoke MFPConvertStringToWide, Addr szMRUTo
         mov pWideMRUTo, eax
         Invoke lstrcpy, Addr szMRUTo, pWideMRUTo
-        Invoke MFP_ConvertStringFree, pWideMRUTo
+        Invoke MFPConvertStringFree, pWideMRUTo
 		ENDIF
 		Invoke GetPrivateProfileString, Addr szMRUSection, Addr szMRUFrom, Addr szIniDefault, Addr szMRUFilename, SIZEOF szMRUFilename, lpszIniFilename
 		.IF eax != 0
@@ -528,10 +528,10 @@ IniMRUEntryDeleteFilename PROC hWin:DWORD, lpszFilename:DWORD, lpszIniFilename:D
 	.WHILE eax < MRU_MAXFILES ;10 ; 9 MRUs
 		Invoke dwtoa, nMRUFrom, Addr szMRUFrom
 		IFDEF __UNICODE__
-		Invoke MFP_ConvertStringToWide, Addr szMRUFrom
+		Invoke MFPConvertStringToWide, Addr szMRUFrom
         mov pWideMRUFrom, eax
         Invoke lstrcpy, Addr szMRUFrom, pWideMRUFrom
-        Invoke MFP_ConvertStringFree, pWideMRUFrom
+        Invoke MFPConvertStringFree, pWideMRUFrom
         ENDIF
 		Invoke GetPrivateProfileString, Addr szMRUSection, Addr szMRUFrom, Addr szIniDefault, Addr szMRUFilename, SIZEOF szMRUFilename, lpszIniFilename
 		.IF eax != 0
@@ -552,14 +552,14 @@ IniMRUEntryDeleteFilename PROC hWin:DWORD, lpszFilename:DWORD, lpszIniFilename:D
 						Invoke dwtoa, nMRUFrom, Addr szMRUFrom
 						Invoke dwtoa, nMRUTo, Addr szMRUTo
                 		IFDEF __UNICODE__
-                		Invoke MFP_ConvertStringToWide, Addr szMRUFrom
+                		Invoke MFPConvertStringToWide, Addr szMRUFrom
                         mov pWideMRUFrom, eax
                         Invoke lstrcpy, Addr szMRUFrom, pWideMRUFrom
-                        Invoke MFP_ConvertStringFree, pWideMRUFrom
-                		Invoke MFP_ConvertStringToWide, Addr szMRUTo
+                        Invoke MFPConvertStringFree, pWideMRUFrom
+                		Invoke MFPConvertStringToWide, Addr szMRUTo
                         mov pWideMRUTo, eax
                         Invoke lstrcpy, Addr szMRUTo, pWideMRUTo
-                        Invoke MFP_ConvertStringFree, pWideMRUTo
+                        Invoke MFPConvertStringFree, pWideMRUTo
                 		ENDIF
 						Invoke GetPrivateProfileString, Addr szMRUSection, Addr szMRUFrom, Addr szIniDefault, Addr szMRUFilename, SIZEOF szMRUFilename, lpszIniFilename
 						.IF eax != 0
@@ -640,10 +640,10 @@ IniSetLanguage PROC hWin:DWORD, lpszIniFilename:DWORD
 	
     Invoke dwtoa, g_LangID, Addr szLangID
 	IFDEF __UNICODE__
-	Invoke MFP_ConvertStringToWide, Addr szLangID
+	Invoke MFPConvertStringToWide, Addr szLangID
     mov pWideLangID, eax
     Invoke lstrcpy, Addr szLangID, pWideLangID
-    Invoke MFP_ConvertStringFree, pWideLangID
+    Invoke MFPConvertStringFree, pWideLangID
 	ENDIF
 	
     Invoke WritePrivateProfileString, Addr szIniMediaPlayer, Addr szIniLanguage, Addr szLangID, lpszIniFilename

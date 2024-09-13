@@ -80,6 +80,8 @@ MediaPlayerBrowseForFile    PROTO hWin:DWORD
 MediaPlayerOpenFile         PROTO hWin:DWORD, lpszMediaFile:DWORD
 MediaPlayerContextMenu      PROTO hWin:DWORD, wParam:WPARAM, lParam:LPARAM
 
+MediaPlayerInitEngine       PROTO hWin:DWORD
+
 MFP_OnMediaPlayerEvent      PROTO pThis:DWORD, pEventHeader:DWORD  
 
 MFP_JustFnameExt            PROTO szFilePathName:DWORD, szFileName:DWORD
@@ -92,10 +94,6 @@ CmdLineProcess              PROTO ; Process cmd line parameters to handle openin
 IFDEF __UNICODE__
 Arg_GetArgumentW            PROTO lpszArgumentList:DWORD, lpszDestination:DWORD, nArgument:DWORD
 Arg_GetCommandLineExW       PROTO nArgument:DWORD, lpszArgumentBuffer:DWORD
-
-MFP_ConvertStringToAnsi     PROTO lpszWideString:DWORD
-MFP_ConvertStringToWide     PROTO lpszAnsiString:DWORD
-MFP_ConvertStringFree       PROTO lpString:DWORD
 ENDIF
 
 ; ChangeWindowMessageFilter Prototype
@@ -211,7 +209,9 @@ MP_AREA_PLAYER          EQU 0
 MP_AREA_LOGO            EQU 1
 MP_AREA_CM_PLAYER       EQU 2
 
-MFP_DEFAULT_RATE        EQU 1000
+MFP_DEFAULT_RATE        EQU 1000 ; x1
+MPF_MAX_RATE            EQU 4000 ; x4
+MPF_MIN_RATE            EQU 125
 
 .DATA
 ;------------------------------------------------------------------------------
@@ -237,6 +237,18 @@ szCMF                   DB 'C',0,'h',0,'a',0,'n',0,'g',0,'e',0
                         DB 'M',0,'e',0,'s',0,'s',0,'a',0,'g',0,'e',0
                         DB 'F',0,'i',0,'l',0,'t',0,'e',0,'r',0
                         DB 0,0,0,0
+
+szRatex0125             DB " ",0,"[",0,"x",0,"0",0,".",0,"1",0,"2",0,"5",0,"]",0
+                        DB 0,0,0,0
+szRatex025              DB " ",0,"[",0,"x",0,"0",0,".",0,"2",0,"5",0,"]",0
+                        DB 0,0,0,0
+szRatex05               DB " ",0,"[",0,"x",0,"0",0,".",0,"5",0,"]",0
+                        DB 0,0,0,0
+szRatex2                DB " ",0,"[",0,"x",0,"2",0,"]",0
+                        DB 0,0,0,0
+szRatex4                DB " ",0,"[",0,"x",0,"4",0,"]",0
+                        DB 0,0,0,0
+
 ELSE
 ClassName               DB 'DLGCLASS',0
 AppName                 DB 'MediaPlayer',0
@@ -246,6 +258,12 @@ szPositionTimeEmpty     DB "--:--",0
 szSpaceDashSpace        DB " - ",0
 szUser32dll             DB 'User32.dll',0 
 szCMF                   DB 'ChangeWindowMessageFilter',0
+
+szRatex0125             DB " [x0.125]",0
+szRatex025              DB " [x0.25]",0
+szRatex05               DB " [x0.5]",0
+szRatex2                DB " [x2]",0
+szRatex4                DB " [x4]",0
 ENDIF
 
 pMP                     DD 0 ; pMediaPlayer
@@ -254,12 +272,15 @@ pMI                     DD 0 ; pMediaItem
 dwFiles                 DD 0
 lpszMediaFileName       DD 0
 
+
 dwDurationTimeMS        DD 0
 dwPositionTimeMS        DD 0
 dwSlowestRate           DD 0
 dwFastestRate           DD 0
 dwCurrentRate           DD 0
 
+g_dwStreamCount         DD 0
+g_pStreamTable          DD 0
 g_LangID                DD 0
 g_Playing               DD FALSE
 g_Fullscreen            DD FALSE
@@ -344,6 +365,9 @@ COMDLG_FILTERSPEC <Offset szAllFiles, Offset szAllFilesSpec>
 IFNDEF MFP_DIV100
 MFP_DIV100                  REAL4 0.01
 ENDIF
+IFNDEF MFP_DIV125
+MFP_DIV125                  REAL4 0.008
+ENDIF
 IFNDEF MFP_DIV1000
 MFP_DIV1000                 REAL4 0.001
 ENDIF
@@ -372,8 +396,6 @@ hIcoMain                DD ?
 hIcoMFPlayer            DD ?
 hIcoMFPlayVideo         DD ?
 hIcoMFPlayAudio         DD ?
-hBmpFileMRU             DD ?
-hBmpFileMRUClear        DD ?
 
 hMediaPlayerWindow      DD ?
 hMediaPlayerControls    DD ?
