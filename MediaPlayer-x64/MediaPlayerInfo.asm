@@ -467,6 +467,10 @@ MFI_MediaItemInfoText PROC FRAME USES RBX pMediaItem:QWORD
     
     Invoke MFPMediaItem_StreamTable, pMediaItem, Addr g_dwStreamCount, Addr g_pStreamTable
 
+    IFDEF DEBUG64
+    PrintText 'MFI_MediaItemInfoText::MFPMediaItem_StreamTable ok'
+    ENDIF
+    
     .IF pszMediaItemInfo != 0
         Invoke GlobalFree, pszMediaItemInfo
         mov pszMediaItemInfo, 0
