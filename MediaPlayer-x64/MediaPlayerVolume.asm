@@ -66,6 +66,8 @@ MPV_HIGHLIGHTCOLOR      EQU RGB(198,212,224)
 
 
 .DATA
+ALIGN 4
+
 IFDEF __UNICODE__
 szMPVClass              DB 'M',0,'e',0,'d',0,'i',0,'a',0,'P',0,'l',0,'a',0,'y',0,'e',0,'r',0,'V',0,'o',0,'l',0,'u',0,'m',0,'e',0     ; Class name for creating our MediaPlayerVolume control
                         DB 0,0,0,0
@@ -674,6 +676,13 @@ MediaPlayerVolumeSet PROC FRAME hControl:QWORD, dwVolume:DWORD
         .IF pMediaPlayer != 0
             Invoke MFPMediaPlayer_SetVolume, pMediaPlayer, dwVolume
             .IF rax == TRUE
+                xor rax, rax
+                mov eax, dwVolume
+                .IF sdword ptr eax < 0
+                    mov dwVolume, 0
+                .ELSEIF sdword ptr eax > 100
+                    mov dwVolume, 100
+                .ENDIF
                 Invoke SetWindowLongPtr, hControl, @MPV_Volume, dwVolume
                 Invoke _MPVCalcVolumeWidth, hControl
                 Invoke InvalidateRect, hControl, NULL, TRUE

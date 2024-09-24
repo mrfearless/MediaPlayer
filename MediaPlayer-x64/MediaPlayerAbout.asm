@@ -23,6 +23,8 @@ IDC_TxtInfo                     EQU 17004
 IDC_TxtVersion                  EQU 17005
 
 .DATA
+ALIGN 4
+
 IFDEF __UNICODE__
 mrfearless_github               DB "h",0,"t",0,"t",0,"p",0,"s",0,":",0,"/",0,"/",0,"g",0,"i",0,"t",0,"h",0,"u",0,"b",0,".",0,"c",0,"o",0,"m",0
                                 DB "/",0,"m",0,"r",0,"f",0,"e",0,"a",0,"r",0,"l",0,"e",0,"s",0,"s",0

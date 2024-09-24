@@ -63,6 +63,7 @@
 
 ;MP_DEVMODE EQU 1
 
+MPLangLoadStringID          PROTO dwLangID:DWORD, pStringTable:DWORD, dwStringID:DWORD, lpdwString:DWORD
 MPLangLoadMenus             PROTO dwLangID:DWORD, hWin:DWORD, lpHandleMainMenu:DWORD, lpHandleContextMenu:DWORD
 MPLangGetLanguage           PROTO dwLangID:DWORD, lpdwMenuMain:DWORD, lpdwMenuContext:DWORD, lpdwStrings:DWORD
 IFDEF MP_DEVMODE
@@ -94,6 +95,7 @@ MP_LANG_STRING_RECORD       ENDS
 ENDIF
 
 .CONST
+LANG_TOTAL_STRINGS          EQU 11 ; modify this to the amount of strings in the string resource for a language
 LANG_MAX_IDS                EQU 50 ; maximum string id's for a language
 ; String id for a language is calculated as:
 ; LangStringID = (IDLANG x LANG_MAX_IDS) + 100 + StringID
@@ -111,6 +113,8 @@ IDLANG_GERMAN           EQU 3
 IDLANG_POLISH           EQU 4
 IDLANG_ITALIAN          EQU 5
 IDLANG_SPANISH          EQU 6
+IDLANG_UKRAINIAN        EQU 7
+IDLANG_PERSIAN          EQU 8
 
 ; Primary
 LANG_NEUTRAL            EQU 000h
@@ -120,6 +124,8 @@ LANG_GERMAN             EQU 007h
 LANG_POLISH             EQU 015h
 LANG_ITALIAN            EQU 010h
 LANG_SPANISH            EQU 00Ah
+LANG_UKRAINIAN          EQU 022h
+LANG_PERSIAN            EQU 029h
 
 ; Sublang
 SUBLANG_NEUTRAL         EQU 000h
@@ -131,8 +137,12 @@ SUBLANG_GERMAN          EQU 001h
 SUBLANG_POLISH_POLAND   EQU 001h
 SUBLANG_ITALIAN         EQU 001h
 SUBLANG_SPANISH         EQU 001h
+SUBLANG_UKRAINIAN_UKRAINE EQU 001h
+SUBLANG_PERSIAN_IRAN    EQU 001h
 
 .DATA
+ALIGN 4
+
 IFDEF MP_DEVMODE
 szMM                        DB "MM_",0
 szMC                        DB "MC_",0
@@ -157,6 +167,8 @@ include .\Lang\MM_DE.mnu.bin.rtlc.asm
 include .\Lang\MM_PL.mnu.bin.rtlc.asm
 include .\Lang\MM_IT.mnu.bin.rtlc.asm
 include .\Lang\MM_ES.mnu.bin.rtlc.asm
+include .\Lang\MM_UA.mnu.bin.rtlc.asm
+include .\Lang\MM_FA.mnu.bin.rtlc.asm
 
 include .\Lang\MC_DEF.mnu.bin.rtlc.asm
 include .\Lang\MC_EN.mnu.bin.rtlc.asm
@@ -165,6 +177,8 @@ include .\Lang\MC_DE.mnu.bin.rtlc.asm
 include .\Lang\MC_PL.mnu.bin.rtlc.asm
 include .\Lang\MC_IT.mnu.bin.rtlc.asm
 include .\Lang\MC_ES.mnu.bin.rtlc.asm
+include .\Lang\MC_UA.mnu.bin.rtlc.asm
+include .\Lang\MC_FA.mnu.bin.rtlc.asm
 
 include .\Lang\STR_DEF.str.bin.rtlc.asm
 include .\Lang\STR_EN.str.bin.rtlc.asm
@@ -173,6 +187,8 @@ include .\Lang\STR_DE.str.bin.rtlc.asm
 include .\Lang\STR_PL.str.bin.rtlc.asm
 include .\Lang\STR_IT.str.bin.rtlc.asm
 include .\Lang\STR_ES.str.bin.rtlc.asm
+include .\Lang\STR_UA.str.bin.rtlc.asm
+include .\Lang\STR_FA.str.bin.rtlc.asm
 ENDIF
 
 IFDEF MP_RTLC_RESOURCES
@@ -186,6 +202,8 @@ MP_LANG_RECORD <IDLANG_GERMAN,      0,        Offset MM_DE,   0,           Offse
 MP_LANG_RECORD <IDLANG_POLISH,      0,        Offset MM_PL,   0,           Offset MC_PL,   0,       Offset STR_PL,  82, MAKELANGID(LANG_POLISH, SUBLANG_POLISH_POLAND), "PL">
 MP_LANG_RECORD <IDLANG_ITALIAN,     0,        Offset MM_IT,   0,           Offset MC_IT,   0,       Offset STR_IT,  80, MAKELANGID(LANG_ITALIAN, SUBLANG_ITALIAN),      "IT">
 MP_LANG_RECORD <IDLANG_SPANISH,     0,        Offset MM_ES,   0,           Offset MC_ES,   0,       Offset STR_ES,  88, MAKELANGID(LANG_SPANISH, SUBLANG_SPANISH),      "ES">
+MP_LANG_RECORD <IDLANG_UKRAINIAN,   0,        Offset MM_UA,   0,           Offset MC_UA,   0,       Offset STR_UA,  72, MAKELANGID(LANG_UKRAINIAN,SUBLANG_UKRAINIAN_UKRAINE),"UA">
+MP_LANG_RECORD <IDLANG_PERSIAN,     0,        Offset MM_FA,   0,           Offset MC_FA,   0,       Offset STR_FA,  70, MAKELANGID(LANG_PERSIAN,SUBLANG_PERSIAN_IRAN),  "FA">
 MP_LANG_RECORD <0, 0, 0, 0, 0, 0, 0, 0>
 MP_LANG_RECORD_COUNT DD (($-MP_LANG_TABLE) / SIZEOF MP_LANG_RECORD) -1
 ELSE
@@ -199,11 +217,84 @@ MP_LANG_RECORD <IDLANG_GERMAN,      0,0,0,0,0,0,  84, MAKELANGID(LANG_GERMAN, SU
 MP_LANG_RECORD <IDLANG_POLISH,      0,0,0,0,0,0,  82, MAKELANGID(LANG_POLISH, SUBLANG_POLISH_POLAND), "PL">
 MP_LANG_RECORD <IDLANG_ITALIAN,     0,0,0,0,0,0,  80, MAKELANGID(LANG_ITALIAN, SUBLANG_ITALIAN),      "IT">
 MP_LANG_RECORD <IDLANG_SPANISH,     0,0,0,0,0,0,  88, MAKELANGID(LANG_SPANISH, SUBLANG_SPANISH),      "ES">
+MP_LANG_RECORD <IDLANG_UKRAINIAN,   0,0,0,0,0,0,  72, MAKELANGID(LANG_UKRAINIAN,SUBLANG_UKRAINIAN_UKRAINE),"UA">
+MP_LANG_RECORD <IDLANG_PERSIAN,     0,0,0,0,0,0,  70, MAKELANGID(LANG_PERSIAN,SUBLANG_PERSIAN_IRAN),  "FA">
 MP_LANG_RECORD <0, 0, 0, 0, 0, 0, 0, 0, 0>
 MP_LANG_RECORD_COUNT DD (($-MP_LANG_TABLE) / SIZEOF MP_LANG_RECORD) -1
 ENDIF
 
 .CODE
+
+;------------------------------------------------------------------------------
+; MPLangLoadStringID
+;------------------------------------------------------------------------------
+MPLangLoadStringID PROC USES EBX ECX dwLangID:DWORD, pStringTable:DWORD, dwStringID:DWORD, lpdwString:DWORD
+    LOCAL pLangRecord:DWORD
+    LOCAL nLangRecord:DWORD
+    LOCAL bLangRecordFound:DWORD
+    LOCAL pStringRecord:DWORD
+    LOCAL nStringRecord:DWORD
+    LOCAL bStringRecordFound:DWORD
+    LOCAL dwMaxStringSize:DWORD
+    
+    lea eax, MP_LANG_TABLE
+    mov pLangRecord, eax
+    
+    mov bLangRecordFound, FALSE
+    mov nLangRecord, 0
+    mov eax, 0
+    .WHILE eax < MP_LANG_RECORD_COUNT
+        mov ebx, pLangRecord
+        mov eax, [ebx].MP_LANG_RECORD.dwLangID
+        .IF eax == dwLangID
+            mov bLangRecordFound, TRUE
+            .BREAK
+        .ENDIF
+        add pLangRecord, SIZEOF MP_LANG_RECORD
+        inc nLangRecord
+        mov eax, nLangRecord
+    .ENDW
+    
+    ; Get Max string size
+    .IF bLangRecordFound == TRUE
+        mov ebx, pLangRecord
+        mov eax, [ebx].MP_LANG_RECORD.dwMaxStringSize
+        mov dwMaxStringSize, eax
+        
+        ; Get max string size and dword stringid for total length of string record
+        add eax, SIZEOF DWORD
+        mov ecx, eax
+        
+        mov eax, pStringTable
+        mov pStringRecord, eax
+        mov bStringRecordFound, FALSE
+        mov nStringRecord, 0
+        mov eax, 0
+        .WHILE eax < LANG_TOTAL_STRINGS
+            mov ebx, pStringRecord
+            mov eax, dword ptr [ebx]
+            .IF eax == dwStringID
+                mov bStringRecordFound, TRUE
+                .BREAK
+            .ENDIF
+            add pStringRecord, ecx
+            inc nStringRecord
+            mov eax, nStringRecord
+        .ENDW
+        
+        .IF bStringRecordFound == TRUE
+            mov ebx, lpdwString
+            mov eax, pStringRecord
+            add eax, SIZEOF DWORD
+            mov [ebx], eax
+            mov eax, TRUE
+            ret
+        .ENDIF
+    .ENDIF
+    
+    mov eax, FALSE    
+    ret
+MPLangLoadStringID ENDP
 
 ;------------------------------------------------------------------------------
 ; MPLangLoadMenus
@@ -640,9 +731,9 @@ MPLangDump PROC USES EBX
         mov ebx, pLangRecord
         mov eax, [ebx].MP_LANG_RECORD.dwMaxStringSize
         mov dwMaxStringSizePre, eax
-        ;.IF eax == 0
+        .IF eax == 0
             mov eax, MP_LANG_MAXSTRING_SIZE
-        ;.ENDIF
+        .ENDIF
         mov dwMaxStringSize, eax
         
         mov eax, STRINGID_FINISH
@@ -709,6 +800,9 @@ MPLangDump PROC USES EBX
         add ebx, SIZEOF DWORD ; for ID
         mul ebx
         mov dwStringBlockSize, eax
+        IFDEF DEBUG32
+        PrintDec dwStringBlockSize
+        ENDIF
         
         ;----------------------------------------------------------------------
         ; Create filename for lang record resource

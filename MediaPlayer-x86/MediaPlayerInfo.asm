@@ -11,6 +11,10 @@
 ;==============================================================================
 
 MFI_MediaItemInfoText   PROTO pMediaItem:DWORD
+
+MFI_AudioStreamText     PROTO pStreamRecord:DWORD, lpszStreamText:DWORD, bMajorType:DWORD, dwStreamNo:DWORD
+MFI_VideoStreamText     PROTO pStreamRecord:DWORD, lpszStreamText:DWORD, bMajorType:DWORD, dwStreamNo:DWORD
+
 MFI_MajorTypeToString   PROTO dwMajorType:DWORD, lpdwMajorTypeString:DWORD
 MFI_AudioTypeToString   PROTO dwAudioType:DWORD, lpdwAudioTypeString:DWORD, bShortName:DWORD
 MFI_VideoTypeToString   PROTO dwVideoType:DWORD, lpdwVideoTypeString:DWORD, bShortName:DWORD
@@ -39,7 +43,15 @@ SPEAKER_TOP_BACK_RIGHT          EQU 20000h
 
 
 .DATA
+ALIGN 4
+
 pszMediaItemInfo         DD 0
+
+IFDEF __UNICODE__
+szStreamText            DB 288 DUP (0)
+ELSE
+szStreamText            DB 144 DUP (0)
+ENDIF
 
 IFDEF __UNICODE__
 szStream                DB "S",0,"t",0,"r",0,"e",0,"a",0,"m",0," ",0
@@ -66,6 +78,11 @@ szMIIkbps               DB "k",0,"b",0,"p",0,"s",0
                         DB 0,0,0,0
 szMIIchannels           DB "C",0,"h",0 
                         DB 0,0,0,0 ; ,"a",0,"n",0,"n",0,"e",0,"l",0,"s",0
+szMIIHz                 DB "H",0,"z",0
+                        DB 0,0,0,0
+szMIIbits               DB "b",0,"i",0,"t",0
+                        DB 0,0,0,0
+                        
                         
 szLFE                   DB "/",0,"L",0,"F",0,"E",0 ; Low Frequency (Subwoofer)
                         DB 0,0,0,0
@@ -99,12 +116,7 @@ sz2TB                   DB "2",0,"T",0,"B",0 ; Top Back Left & Right
                         DB 0,0,0,0
 sz3TB                   DB "3",0,"T",0,"B",0 ; Top Back Left, Right & Center
                         DB 0,0,0,0
-                        
-                        
-szMIIHz                 DB "H",0,"z",0
-                        DB 0,0,0,0
-szMIIbits               DB "b",0,"i",0,"t",0
-                        DB 0,0,0,0
+
 szMIIfps                DB "f",0,"p",0,"s",0
                         DB 0,0,0,0
 szMIIx                  DB "x",0
@@ -454,6 +466,7 @@ szMFVF_MP43_S 	        DB "M",0,"P",0,"E",0,"G",0,"4",0
 
 ELSE
 szStream                DB "Stream ",0
+
 szMIIColon              DB ":",0
 szMIILeftBracket        DB "(",0
 szMIIRightBracket       DB ")",0
@@ -465,7 +478,8 @@ szMIISpace              DB " ",0
 szMIIDash               DB "-",0
 szMIIkbps               DB "kbps",0
 szMIIchannels           DB "Ch",0 ; annels
-; 3F2M3B3TF1TC3TB/LFE
+szMIIHz                 DB "Hz",0
+szMIIbits               DB "bit",0
 szLFE                   DB "/LFE",0 ; Low Frequency (Subwoofer)
 sz1F                    DB "1F",0 ; Front Center
 sz2F                    DB "2F",0 ; Front Left & Right
@@ -483,8 +497,6 @@ sz1TB                   DB "1TB",0 ; Top Back Center
 sz2TB                   DB "2TB",0 ; Top Back Left & Right
 sz3TB                   DB "3TB",0 ; Top Back Left, Right & Center
 
-szMIIHz                 DB "Hz",0
-szMIIbits               DB "bit",0
 szMIIfps                DB "fps",0
 szMIIx                  DB "x",0
 szMIICRLF               DB 13,10,0
@@ -674,30 +686,7 @@ ENDIF
 MFI_MediaItemInfoText PROC USES EBX pMediaItem:DWORD
     LOCAL nStream:DWORD
     LOCAL pStreamRecord:DWORD
-    LOCAL lpszStreamName:DWORD
-    LOCAL lpszStreamLang:DWORD
-    LOCAL pszwString:DWORD
-    LOCAL lpszMajorType:DWORD
-    LOCAL lpszSubType:DWORD
     LOCAL dwMajorType:DWORD
-    LOCAL dwSubType:DWORD
-    LOCAL dwBitRate:DWORD
-    LOCAL dwChannels:DWORD
-    LOCAL dwSpeakers:DWORD
-    LOCAL dwSamplesPerSec:DWORD
-    LOCAL dwBitsPerSample:DWORD
-    LOCAL dwFrameRate:DWORD
-    LOCAL dwFrameWidth:DWORD
-    LOCAL dwFrameHeight:DWORD
-    LOCAL szStreamNumber[12]:BYTE
-    LOCAL szBitRate[16]:BYTE
-    LOCAL szChannels[8]:BYTE
-    LOCAL szSpeakers[48]:BYTE
-    LOCAL szSamplesPerSec[16]:BYTE
-    LOCAL szBitsPerSample[8]:BYTE
-    LOCAL szFrameRate[16]:BYTE
-    LOCAL szFrameWidth[16]:BYTE
-    LOCAL szFrameHeight[16]:BYTE
     
     Invoke MFPMediaItem_StreamTable, pMediaItem, Addr g_dwStreamCount, Addr g_pStreamTable
     IFDEF DEBUG32
@@ -715,6 +704,7 @@ MFI_MediaItemInfoText PROC USES EBX pMediaItem:DWORD
     .ENDIF
     
     mov eax, g_dwStreamCount
+    inc eax ; add 1 for filename
     ; Calc size required to hold text for all stream information
     ; 'Stream 0 Audio (en): MP3 132kbps 6Channels 48000kHz 16bit
     ; 'Stream 1 Video: MP4 286kbps 25fps 1280x720 
@@ -726,14 +716,18 @@ MFI_MediaItemInfoText PROC USES EBX pMediaItem:DWORD
     ; Bitdepth: 6
     ; = 68+12+13+11+10+6 (123) 128 per stream (x2 for unicode) + CRLF for each stream
     IFDEF __UNICODE__
-    mov ebx, 256
+    mov ebx, 288
     ELSE
-    mov ebx, 128
+    mov ebx, 144
     ENDIF
     mul ebx
     add eax, 8 ; just in case for nulls etc
     Invoke GlobalAlloc, GMEM_FIXED or GMEM_ZEROINIT, eax
     mov pszMediaItemInfo, eax
+    
+    Invoke lstrcpy, pszMediaItemInfo, Addr szJustFilename
+    Invoke lstrcat, pszMediaItemInfo, Addr szMIIColon
+    Invoke lstrcat, pszMediaItemInfo, Addr szMIICRLF
     
     mov eax, g_pStreamTable
     mov pStreamRecord, eax
@@ -756,338 +750,20 @@ MFI_MediaItemInfoText PROC USES EBX pMediaItem:DWORD
             Invoke lstrcat, pszMediaItemInfo, Addr szMIISpace
         .ENDIF
         
-        .IF g_dwStreamCount > 1
-            ; Stream Number
-            Invoke dwtoa, nStream, Addr szStreamNumber
-            IFDEF __UNICODE__
-            Invoke MFPConvertStringToWide, Addr szStreamNumber
-            mov pszwString, eax
-            Invoke lstrcat, pszMediaItemInfo, pszwString
-            Invoke MFPConvertStringFree, pszwString
-            ELSE
-            Invoke lstrcat, pszMediaItemInfo, Addr szStreamNumber
-            ENDIF
-            Invoke lstrcat, pszMediaItemInfo, Addr szMIISpace
-        .ENDIF
-;        mov ebx, pStreamRecord
-;        lea eax, [ebx].MFP_STREAM_RECORD.szStreamName
-;        mov lpszStreamName, eax
-;        IFDEF __UNICODE__
-;        Invoke lstrcat, pszMediaItemInfo, lpszStreamName
-;        ELSE
-;        Invoke MFPConvertStringToAnsi, lpszStreamName
-;        mov lpszStreamName, eax
-;        Invoke lstrcat, pszMediaItemInfo, lpszStreamName
-;        Invoke MFPConvertStringFree, lpszStreamName
-;        ENDIF
-;        Invoke lstrcat, pszMediaItemInfo, Addr szMIISpace
-        
-        ; Stream Type
         mov ebx, pStreamRecord
         mov eax, [ebx].MFP_STREAM_RECORD.dwMajorType
         mov dwMajorType, eax
-        Invoke MFI_MajorTypeToString, dwMajorType, Addr lpszMajorType
-        Invoke lstrcat, pszMediaItemInfo, lpszMajorType
-        
-        ; Stream Language
-        mov ebx, pStreamRecord
-        lea eax, [ebx].MFP_STREAM_RECORD.szStreamLang
-        mov lpszStreamLang, eax
-        Invoke lstrlen, lpszStreamLang
-        .IF eax != 0
-            Invoke lstrcat, pszMediaItemInfo, Addr szMIISpace
-            Invoke lstrcat, pszMediaItemInfo, Addr szMIILeftBracket
-            IFDEF __UNICODE__
-            Invoke lstrcat, pszMediaItemInfo, lpszStreamLang
-            ELSE
-            Invoke MFPConvertStringToAnsi, lpszStreamLang
-            mov lpszStreamLang, eax
-            Invoke lstrcat, pszMediaItemInfo, lpszStreamLang
-            Invoke MFPConvertStringFree, lpszStreamLang
-            ENDIF
-            Invoke lstrcat, pszMediaItemInfo, Addr szMIIRightBracket
-        .ENDIF
-        Invoke lstrcat, pszMediaItemInfo, Addr szMIIColon
-        Invoke lstrcat, pszMediaItemInfo, Addr szMIISpace
-        
-        mov ebx, pStreamRecord
-        mov eax, [ebx].MFP_STREAM_RECORD.dwSubType
-        mov dwSubType, eax
         
         .IF dwMajorType == MFMT_Audio
-            Invoke MFI_AudioTypeToString, dwSubType, Addr lpszSubType, TRUE
-            Invoke lstrcat, pszMediaItemInfo, lpszSubType
-            Invoke lstrcat, pszMediaItemInfo, Addr szMIISpace
-            
-            ; Bitrate - kbps
-            mov ebx, pStreamRecord
-            mov eax, [ebx].MFP_STREAM_RECORD.dwBitRate
-            .IF eax != 0
-                mov dwBitRate, eax
-                Invoke dwtoa, dwBitRate, Addr szBitRate
-                IFDEF __UNICODE__
-                Invoke MFPConvertStringToWide, Addr szBitRate
-                mov pszwString, eax
-                Invoke lstrcat, pszMediaItemInfo, pszwString
-                Invoke MFPConvertStringFree, pszwString
-                ELSE
-                Invoke lstrcat, pszMediaItemInfo, Addr szBitRate
-                ENDIF
-                Invoke lstrcat, pszMediaItemInfo, Addr szMIIkbps
-                Invoke lstrcat, pszMediaItemInfo, Addr szMIISpace
-            .ENDIF
-            
-            ; Channels
-            mov ebx, pStreamRecord
-            mov eax, [ebx].MFP_STREAM_RECORD.dwChannels
-            .IF eax != 0
-                mov dwChannels, eax
-                Invoke dwtoa, dwChannels, Addr szChannels
-                IFDEF __UNICODE__
-                Invoke MFPConvertStringToWide, Addr szChannels
-                mov pszwString, eax
-                Invoke lstrcat, pszMediaItemInfo, pszwString
-                Invoke MFPConvertStringFree, pszwString
-                ELSE
-                Invoke lstrcat, pszMediaItemInfo, Addr szChannels
-                ENDIF
-                Invoke lstrcat, pszMediaItemInfo, Addr szMIIchannels
-                Invoke lstrcat, pszMediaItemInfo, Addr szMIISpace
-            .ENDIF
-            
-            ; Speaker
-            mov ebx, pStreamRecord
-            mov eax, [ebx].MFP_STREAM_RECORD.dwSpeakers
-            .IF eax != 0
-                mov dwSpeakers, eax ; 3F2M/LFE
-                
-                ; zero out szSpeakers
-                mov eax, 0
-                lea ebx, szSpeakers
-                mov [ebx+0], eax
-                mov [ebx+4], eax
-                mov [ebx+8], eax
-                mov [ebx+12], eax
-                mov [ebx+16], eax
-                mov [ebx+20], eax
-                mov [ebx+24], eax
-                mov [ebx+28], eax
-                mov [ebx+32], eax
-                mov [ebx+36], eax
-                mov [ebx+40], eax
-                mov [ebx+44], eax
-                
-            SpeakersFront:
-                mov eax, dwSpeakers
-                and eax, SPEAKER_FRONT_LEFT or SPEAKER_FRONT_RIGHT or SPEAKER_FRONT_CENTER or SPEAKER_FRONT_LEFT_OF_CENTER or SPEAKER_FRONT_RIGHT_OF_CENTER
-                .IF eax == SPEAKER_FRONT_LEFT or SPEAKER_FRONT_RIGHT or SPEAKER_FRONT_CENTER or SPEAKER_FRONT_LEFT_OF_CENTER or SPEAKER_FRONT_RIGHT_OF_CENTER
-                    Invoke lstrcat, Addr szSpeakers, Addr sz5F
-                    jmp SpeakersSide
-                .ENDIF
-                mov eax, dwSpeakers
-                and eax, SPEAKER_FRONT_LEFT or SPEAKER_FRONT_RIGHT or SPEAKER_FRONT_CENTER
-                .IF eax == SPEAKER_FRONT_LEFT or SPEAKER_FRONT_RIGHT or SPEAKER_FRONT_CENTER
-                    Invoke lstrcat, Addr szSpeakers, Addr sz3F
-                    jmp SpeakersSide
-                .ENDIF
-                mov eax, dwSpeakers
-                and eax, SPEAKER_FRONT_LEFT or SPEAKER_FRONT_RIGHT
-                .IF eax == SPEAKER_FRONT_LEFT or SPEAKER_FRONT_RIGHT
-                    Invoke lstrcat, Addr szSpeakers, Addr sz2F
-                    jmp SpeakersSide
-                .ENDIF
-                mov eax, dwSpeakers
-                and eax, SPEAKER_FRONT_CENTER
-                .IF eax == SPEAKER_FRONT_CENTER
-                    Invoke lstrcat, Addr szSpeakers, Addr sz1F
-                    jmp SpeakersSide
-                .ENDIF
-            SpeakersSide:
-                mov eax, dwSpeakers
-                and eax, SPEAKER_SIDE_LEFT or SPEAKER_SIDE_RIGHT
-                .IF eax == SPEAKER_SIDE_LEFT or SPEAKER_SIDE_RIGHT
-                    Invoke lstrcat, Addr szSpeakers, Addr sz2S
-                    jmp SpeakersBack
-                .ENDIF
-            SpeakersBack:
-                mov eax, dwSpeakers
-                and eax, SPEAKER_BACK_LEFT or SPEAKER_BACK_RIGHT or SPEAKER_BACK_CENTER
-                .IF eax == SPEAKER_BACK_LEFT or SPEAKER_BACK_RIGHT or SPEAKER_BACK_CENTER
-                    Invoke lstrcat, Addr szSpeakers, Addr sz3B
-                    jmp SpeakersTopFront
-                .ENDIF
-                mov eax, dwSpeakers
-                and eax, SPEAKER_BACK_LEFT or SPEAKER_BACK_RIGHT
-                .IF eax == SPEAKER_BACK_LEFT or SPEAKER_BACK_RIGHT
-                    Invoke lstrcat, Addr szSpeakers, Addr sz2B
-                    jmp SpeakersTopFront
-                .ENDIF
-                mov eax, dwSpeakers
-                and eax, SPEAKER_BACK_CENTER
-                .IF eax == SPEAKER_BACK_CENTER
-                    Invoke lstrcat, Addr szSpeakers, Addr sz1B
-                    jmp SpeakersTopFront
-                .ENDIF
-            SpeakersTopFront:
-                mov eax, dwSpeakers
-                and eax, SPEAKER_TOP_FRONT_LEFT or SPEAKER_TOP_FRONT_RIGHT or SPEAKER_TOP_FRONT_CENTER
-                .IF eax == SPEAKER_TOP_FRONT_LEFT or SPEAKER_TOP_FRONT_RIGHT or SPEAKER_TOP_FRONT_CENTER
-                    Invoke lstrcat, Addr szSpeakers, Addr sz3TF
-                    jmp SpeakersTopCenter
-                .ENDIF
-                mov eax, dwSpeakers
-                and eax, SPEAKER_TOP_FRONT_LEFT or SPEAKER_TOP_FRONT_RIGHT
-                .IF eax == SPEAKER_TOP_FRONT_LEFT or SPEAKER_TOP_FRONT_RIGHT
-                    Invoke lstrcat, Addr szSpeakers, Addr sz2TF
-                    jmp SpeakersTopCenter
-                .ENDIF
-                mov eax, dwSpeakers
-                and eax, SPEAKER_TOP_FRONT_CENTER
-                .IF eax == SPEAKER_TOP_FRONT_CENTER
-                    Invoke lstrcat, Addr szSpeakers, Addr sz1TF
-                    jmp SpeakersTopCenter
-                .ENDIF
-            SpeakersTopCenter:
-                mov eax, dwSpeakers
-                and eax, SPEAKER_TOP_CENTER
-                .IF eax == SPEAKER_TOP_CENTER
-                    Invoke lstrcat, Addr szSpeakers, Addr sz1TC
-                    jmp SpeakersTopBack
-                .ENDIF
-            SpeakersTopBack:
-                mov eax, dwSpeakers
-                and eax, SPEAKER_TOP_BACK_LEFT or SPEAKER_TOP_BACK_RIGHT or SPEAKER_TOP_BACK_CENTER
-                .IF eax == SPEAKER_TOP_BACK_LEFT or SPEAKER_TOP_BACK_RIGHT or SPEAKER_TOP_BACK_CENTER
-                    Invoke lstrcat, Addr szSpeakers, Addr sz3TB
-                    jmp SpeakersLFE
-                .ENDIF
-                mov eax, dwSpeakers
-                and eax, SPEAKER_TOP_BACK_LEFT or SPEAKER_TOP_BACK_RIGHT
-                .IF eax == SPEAKER_TOP_BACK_LEFT or SPEAKER_TOP_BACK_RIGHT
-                    Invoke lstrcat, Addr szSpeakers, Addr sz2TB
-                    jmp SpeakersLFE
-                .ENDIF
-                mov eax, dwSpeakers
-                and eax, SPEAKER_TOP_BACK_CENTER
-                .IF eax == SPEAKER_TOP_BACK_CENTER
-                    Invoke lstrcat, Addr szSpeakers, Addr sz1TB
-                    jmp SpeakersLFE
-                .ENDIF
-            SpeakersLFE:
-                mov eax, dwSpeakers
-                and eax, SPEAKER_LOW_FREQUENCY
-                .IF eax == SPEAKER_LOW_FREQUENCY
-                    Invoke lstrcat, Addr szSpeakers, Addr szLFE
-                .ENDIF
-                
-                Invoke lstrcat, pszMediaItemInfo, Addr szSpeakers
-                Invoke lstrcat, pszMediaItemInfo, Addr szMIISpace
-                
-            .ENDIF
-            
-            ; Samples per second
-            mov ebx, pStreamRecord
-            mov eax, [ebx].MFP_STREAM_RECORD.dwSamplesPerSec
-            .IF eax != 0
-                mov dwSamplesPerSec, eax
-                Invoke dwtoa, dwSamplesPerSec, Addr szSamplesPerSec
-                IFDEF __UNICODE__
-                Invoke MFPConvertStringToWide, Addr szSamplesPerSec
-                mov pszwString, eax
-                Invoke lstrcat, pszMediaItemInfo, pszwString
-                Invoke MFPConvertStringFree, pszwString
-                ELSE
-                Invoke lstrcat, pszMediaItemInfo, Addr szSamplesPerSec
-                ENDIF
-                Invoke lstrcat, pszMediaItemInfo, Addr szMIIHz
-                Invoke lstrcat, pszMediaItemInfo, Addr szMIISpace
-            .ENDIF
-            
-            ; Bits per sample
-            mov ebx, pStreamRecord
-            mov eax, [ebx].MFP_STREAM_RECORD.dwBitsPerSample
-            .IF eax != 0
-                mov dwBitsPerSample, eax
-                Invoke dwtoa, dwBitsPerSample, Addr szBitsPerSample
-                IFDEF __UNICODE__
-                Invoke MFPConvertStringToWide, Addr szBitsPerSample
-                mov pszwString, eax
-                Invoke lstrcat, pszMediaItemInfo, pszwString
-                Invoke MFPConvertStringFree, pszwString
-                ELSE
-                Invoke lstrcat, pszMediaItemInfo, Addr szBitsPerSample
-                ENDIF
-                Invoke lstrcat, pszMediaItemInfo, Addr szMIIbits
-            .ENDIF
+        
+            Invoke MFI_AudioStreamText, pStreamRecord, Addr szStreamText, TRUE, nStream
+            Invoke lstrcat, pszMediaItemInfo, Addr szStreamText
         
         .ELSEIF dwMajorType == MFMT_Video
-            Invoke MFI_VideoTypeToString, dwSubType, Addr lpszSubType, TRUE
-            Invoke lstrcat, pszMediaItemInfo, lpszSubType
-            Invoke lstrcat, pszMediaItemInfo, Addr szMIISpace
-            
-            mov ebx, pStreamRecord
-            mov eax, [ebx].MFP_STREAM_RECORD.dwBitRate
-            .IF eax != 0
-                mov dwBitRate, eax
-                Invoke dwtoa, dwBitRate, Addr szBitRate
-                IFDEF __UNICODE__
-                Invoke MFPConvertStringToWide, Addr szBitRate
-                mov pszwString, eax
-                Invoke lstrcat, pszMediaItemInfo, pszwString
-                Invoke MFPConvertStringFree, pszwString
-                ELSE
-                Invoke lstrcat, pszMediaItemInfo, Addr szBitRate
-                ENDIF
-                Invoke lstrcat, pszMediaItemInfo, Addr szMIIkbps
-                Invoke lstrcat, pszMediaItemInfo, Addr szMIISpace
-            .ENDIF
-            
-            mov ebx, pStreamRecord
-            mov eax, [ebx].MFP_STREAM_RECORD.dwFrameRate
-            .IF eax != 0
-            mov dwFrameRate, eax
-                Invoke dwtoa, dwFrameRate, Addr szFrameRate
-                IFDEF __UNICODE__
-                Invoke MFPConvertStringToWide, Addr szFrameRate
-                mov pszwString, eax
-                Invoke lstrcat, pszMediaItemInfo, pszwString
-                Invoke MFPConvertStringFree, pszwString
-                ELSE
-                Invoke lstrcat, pszMediaItemInfo, Addr szFrameRate
-                ENDIF
-                Invoke lstrcat, pszMediaItemInfo, Addr szMIIfps
-                Invoke lstrcat, pszMediaItemInfo, Addr szMIISpace
-            .ENDIF
-            
-            mov ebx, pStreamRecord
-            mov eax, [ebx].MFP_STREAM_RECORD.dwFrameWidth
-            .IF eax != 0
-            mov dwFrameWidth, eax
-                Invoke dwtoa, dwFrameWidth, Addr szFrameWidth
-                IFDEF __UNICODE__
-                Invoke MFPConvertStringToWide, Addr szFrameWidth
-                mov pszwString, eax
-                Invoke lstrcat, pszMediaItemInfo, pszwString
-                Invoke MFPConvertStringFree, pszwString
-                ELSE
-                Invoke lstrcat, pszMediaItemInfo, Addr szFrameWidth
-                ENDIF
-                Invoke lstrcat, pszMediaItemInfo, Addr szMIIx
-                
-                mov ebx, pStreamRecord
-                mov eax, [ebx].MFP_STREAM_RECORD.dwFrameHeight
-                mov dwFrameHeight, eax
-                Invoke dwtoa, dwFrameHeight, Addr szFrameHeight
-                IFDEF __UNICODE__
-                Invoke MFPConvertStringToWide, Addr szFrameHeight
-                mov pszwString, eax
-                Invoke lstrcat, pszMediaItemInfo, pszwString
-                Invoke MFPConvertStringFree, pszwString
-                ELSE
-                Invoke lstrcat, pszMediaItemInfo, Addr szFrameHeight
-                ENDIF
-            .ENDIF
-            
+        
+            Invoke MFI_VideoStreamText, pStreamRecord, Addr szStreamText, TRUE, nStream
+            Invoke lstrcat, pszMediaItemInfo, Addr szStreamText
+
         .ENDIF
         
         mov eax, nStream
@@ -1107,6 +783,486 @@ MFI_MediaItemInfoText PROC USES EBX pMediaItem:DWORD
     
     ret
 MFI_MediaItemInfoText ENDP
+
+;------------------------------------------------------------------------------
+; MFI_AudioStreamText
+;------------------------------------------------------------------------------
+MFI_AudioStreamText PROC USES EBX pStreamRecord:DWORD, lpszStreamText:DWORD, bMajorType:DWORD, dwStreamNo:DWORD
+    LOCAL dwStreamID:DWORD
+    LOCAL lpszStreamLang:DWORD
+    LOCAL pszwString:DWORD
+    LOCAL dwMajorType:DWORD
+    LOCAL dwSubType:DWORD
+    LOCAL lpszMajorType:DWORD
+    LOCAL lpszSubType:DWORD
+    LOCAL dwBitRate:DWORD
+    LOCAL dwChannels:DWORD
+    LOCAL dwSpeakers:DWORD
+    LOCAL dwSamplesPerSec:DWORD
+    LOCAL dwBitsPerSample:DWORD
+    LOCAL szStreamNumber[12]:BYTE
+    LOCAL szBitRate[16]:BYTE
+    LOCAL szChannels[8]:BYTE
+    LOCAL szSpeakers[48]:BYTE
+    LOCAL szSamplesPerSec[16]:BYTE
+    LOCAL szBitsPerSample[8]:BYTE
+    
+    IFDEF DEBUG32
+    ;PrintText 'MFI_AudioStreamText'
+    ENDIF
+    
+    IFDEF DEBUG32
+    ;PrintText 'Stream Number'
+    ENDIF
+    ; Stream Number
+    ;mov ebx, pStreamRecord
+    ;mov eax, [ebx].MFP_STREAM_RECORD.dwStreamID
+    ;mov dwStreamID, eax
+    .IF bMajorType == FALSE
+        Invoke dwtoa, dwStreamNo, Addr szStreamNumber ;dwStreamID
+        IFDEF __UNICODE__
+        Invoke MFPConvertStringToWide, Addr szStreamNumber
+        mov pszwString, eax
+        Invoke lstrcpy, lpszStreamText, pszwString
+        Invoke MFPConvertStringFree, pszwString
+        ELSE
+        Invoke lstrcpy, lpszStreamText, Addr szStreamNumber
+        ENDIF
+    .ENDIF
+    
+    IFDEF DEBUG32
+    ;PrintText 'Stream Type'
+    ENDIF
+    ; Stream Type
+    .IF bMajorType == TRUE
+        ;Invoke lstrcat, lpszStreamText, Addr szMIISpace
+        mov ebx, pStreamRecord
+        mov eax, [ebx].MFP_STREAM_RECORD.dwMajorType
+        mov dwMajorType, eax
+        Invoke MFI_MajorTypeToString, dwMajorType, Addr lpszMajorType
+        Invoke lstrcpy, lpszStreamText, lpszMajorType
+    .ENDIF
+    
+    IFDEF DEBUG32
+    ;PrintText 'Stream Language'
+    ENDIF
+    ; Stream Language
+    mov ebx, pStreamRecord
+    lea eax, [ebx].MFP_STREAM_RECORD.szStreamLang
+    mov lpszStreamLang, eax
+    Invoke lstrlen, lpszStreamLang
+    .IF eax != 0
+        Invoke lstrcat, lpszStreamText, Addr szMIISpace
+        Invoke lstrcat, lpszStreamText, Addr szMIILeftBracket
+        IFDEF __UNICODE__
+        Invoke lstrcat, lpszStreamText, lpszStreamLang
+        ELSE
+        Invoke MFPConvertStringToAnsi, lpszStreamLang
+        mov lpszStreamLang, eax
+        Invoke lstrcat, lpszStreamText, lpszStreamLang
+        Invoke MFPConvertStringFree, lpszStreamLang
+        ENDIF
+        Invoke lstrcat, lpszStreamText, Addr szMIIRightBracket
+    .ENDIF
+    Invoke lstrcat, lpszStreamText, Addr szMIIColon
+    Invoke lstrcat, lpszStreamText, Addr szMIISpace
+    
+    IFDEF DEBUG32
+    ;PrintText 'Audio Type'
+    ENDIF
+    ; Audio Type
+    mov ebx, pStreamRecord
+    mov eax, [ebx].MFP_STREAM_RECORD.dwSubType
+    mov dwSubType, eax
+    Invoke MFI_AudioTypeToString, dwSubType, Addr lpszSubType, TRUE
+    Invoke lstrcat, lpszStreamText, lpszSubType
+    Invoke lstrcat, lpszStreamText, Addr szMIISpace
+    
+    IFDEF DEBUG32
+    ;PrintText 'Bitrate - kbps'
+    ENDIF
+    ; Bitrate - kbps
+    mov ebx, pStreamRecord
+    mov eax, [ebx].MFP_STREAM_RECORD.dwBitRate
+    .IF eax != 0
+        mov dwBitRate, eax
+        Invoke dwtoa, dwBitRate, Addr szBitRate
+        IFDEF __UNICODE__
+        Invoke MFPConvertStringToWide, Addr szBitRate
+        mov pszwString, eax
+        Invoke lstrcat, lpszStreamText, pszwString
+        Invoke MFPConvertStringFree, pszwString
+        ELSE
+        Invoke lstrcat, lpszStreamText, Addr szBitRate
+        ENDIF
+        Invoke lstrcat, lpszStreamText, Addr szMIIkbps
+        Invoke lstrcat, lpszStreamText, Addr szMIISpace
+    .ENDIF
+    
+    IFDEF DEBUG32
+    ;PrintText 'Channels'
+    ENDIF
+    ; Channels
+    mov ebx, pStreamRecord
+    mov eax, [ebx].MFP_STREAM_RECORD.dwChannels
+    .IF eax != 0
+        mov dwChannels, eax
+        Invoke dwtoa, dwChannels, Addr szChannels
+        IFDEF __UNICODE__
+        Invoke MFPConvertStringToWide, Addr szChannels
+        mov pszwString, eax
+        Invoke lstrcat, lpszStreamText, pszwString
+        Invoke MFPConvertStringFree, pszwString
+        ELSE
+        Invoke lstrcat, lpszStreamText, Addr szChannels
+        ENDIF
+        Invoke lstrcat, lpszStreamText, Addr szMIIchannels
+        Invoke lstrcat, lpszStreamText, Addr szMIISpace
+    .ENDIF
+    
+    IFDEF DEBUG32
+    ;PrintText 'Speaker'
+    ENDIF
+    ; Speaker
+    mov ebx, pStreamRecord
+    mov eax, [ebx].MFP_STREAM_RECORD.dwSpeakers
+    .IF eax != 0
+        mov dwSpeakers, eax ; 3F2M/LFE
+        
+        ; zero out szSpeakers
+        mov eax, 0
+        lea ebx, szSpeakers
+        mov [ebx+0], eax
+        mov [ebx+4], eax
+        mov [ebx+8], eax
+        mov [ebx+12], eax
+        mov [ebx+16], eax
+        mov [ebx+20], eax
+        mov [ebx+24], eax
+        mov [ebx+28], eax
+        mov [ebx+32], eax
+        mov [ebx+36], eax
+        mov [ebx+40], eax
+        mov [ebx+44], eax
+        
+    SpeakersFront:
+        mov eax, dwSpeakers
+        and eax, SPEAKER_FRONT_LEFT or SPEAKER_FRONT_RIGHT or SPEAKER_FRONT_CENTER or SPEAKER_FRONT_LEFT_OF_CENTER or SPEAKER_FRONT_RIGHT_OF_CENTER
+        .IF eax == SPEAKER_FRONT_LEFT or SPEAKER_FRONT_RIGHT or SPEAKER_FRONT_CENTER or SPEAKER_FRONT_LEFT_OF_CENTER or SPEAKER_FRONT_RIGHT_OF_CENTER
+            Invoke lstrcat, Addr szSpeakers, Addr sz5F
+            jmp SpeakersSide
+        .ENDIF
+        mov eax, dwSpeakers
+        and eax, SPEAKER_FRONT_LEFT or SPEAKER_FRONT_RIGHT or SPEAKER_FRONT_CENTER
+        .IF eax == SPEAKER_FRONT_LEFT or SPEAKER_FRONT_RIGHT or SPEAKER_FRONT_CENTER
+            Invoke lstrcat, Addr szSpeakers, Addr sz3F
+            jmp SpeakersSide
+        .ENDIF
+        mov eax, dwSpeakers
+        and eax, SPEAKER_FRONT_LEFT or SPEAKER_FRONT_RIGHT
+        .IF eax == SPEAKER_FRONT_LEFT or SPEAKER_FRONT_RIGHT
+            Invoke lstrcat, Addr szSpeakers, Addr sz2F
+            jmp SpeakersSide
+        .ENDIF
+        mov eax, dwSpeakers
+        and eax, SPEAKER_FRONT_CENTER
+        .IF eax == SPEAKER_FRONT_CENTER
+            Invoke lstrcat, Addr szSpeakers, Addr sz1F
+            jmp SpeakersSide
+        .ENDIF
+    SpeakersSide:
+        mov eax, dwSpeakers
+        and eax, SPEAKER_SIDE_LEFT or SPEAKER_SIDE_RIGHT
+        .IF eax == SPEAKER_SIDE_LEFT or SPEAKER_SIDE_RIGHT
+            Invoke lstrcat, Addr szSpeakers, Addr sz2S
+            jmp SpeakersBack
+        .ENDIF
+    SpeakersBack:
+        mov eax, dwSpeakers
+        and eax, SPEAKER_BACK_LEFT or SPEAKER_BACK_RIGHT or SPEAKER_BACK_CENTER
+        .IF eax == SPEAKER_BACK_LEFT or SPEAKER_BACK_RIGHT or SPEAKER_BACK_CENTER
+            Invoke lstrcat, Addr szSpeakers, Addr sz3B
+            jmp SpeakersTopFront
+        .ENDIF
+        mov eax, dwSpeakers
+        and eax, SPEAKER_BACK_LEFT or SPEAKER_BACK_RIGHT
+        .IF eax == SPEAKER_BACK_LEFT or SPEAKER_BACK_RIGHT
+            Invoke lstrcat, Addr szSpeakers, Addr sz2B
+            jmp SpeakersTopFront
+        .ENDIF
+        mov eax, dwSpeakers
+        and eax, SPEAKER_BACK_CENTER
+        .IF eax == SPEAKER_BACK_CENTER
+            Invoke lstrcat, Addr szSpeakers, Addr sz1B
+            jmp SpeakersTopFront
+        .ENDIF
+    SpeakersTopFront:
+        mov eax, dwSpeakers
+        and eax, SPEAKER_TOP_FRONT_LEFT or SPEAKER_TOP_FRONT_RIGHT or SPEAKER_TOP_FRONT_CENTER
+        .IF eax == SPEAKER_TOP_FRONT_LEFT or SPEAKER_TOP_FRONT_RIGHT or SPEAKER_TOP_FRONT_CENTER
+            Invoke lstrcat, Addr szSpeakers, Addr sz3TF
+            jmp SpeakersTopCenter
+        .ENDIF
+        mov eax, dwSpeakers
+        and eax, SPEAKER_TOP_FRONT_LEFT or SPEAKER_TOP_FRONT_RIGHT
+        .IF eax == SPEAKER_TOP_FRONT_LEFT or SPEAKER_TOP_FRONT_RIGHT
+            Invoke lstrcat, Addr szSpeakers, Addr sz2TF
+            jmp SpeakersTopCenter
+        .ENDIF
+        mov eax, dwSpeakers
+        and eax, SPEAKER_TOP_FRONT_CENTER
+        .IF eax == SPEAKER_TOP_FRONT_CENTER
+            Invoke lstrcat, Addr szSpeakers, Addr sz1TF
+            jmp SpeakersTopCenter
+        .ENDIF
+    SpeakersTopCenter:
+        mov eax, dwSpeakers
+        and eax, SPEAKER_TOP_CENTER
+        .IF eax == SPEAKER_TOP_CENTER
+            Invoke lstrcat, Addr szSpeakers, Addr sz1TC
+            jmp SpeakersTopBack
+        .ENDIF
+    SpeakersTopBack:
+        mov eax, dwSpeakers
+        and eax, SPEAKER_TOP_BACK_LEFT or SPEAKER_TOP_BACK_RIGHT or SPEAKER_TOP_BACK_CENTER
+        .IF eax == SPEAKER_TOP_BACK_LEFT or SPEAKER_TOP_BACK_RIGHT or SPEAKER_TOP_BACK_CENTER
+            Invoke lstrcat, Addr szSpeakers, Addr sz3TB
+            jmp SpeakersLFE
+        .ENDIF
+        mov eax, dwSpeakers
+        and eax, SPEAKER_TOP_BACK_LEFT or SPEAKER_TOP_BACK_RIGHT
+        .IF eax == SPEAKER_TOP_BACK_LEFT or SPEAKER_TOP_BACK_RIGHT
+            Invoke lstrcat, Addr szSpeakers, Addr sz2TB
+            jmp SpeakersLFE
+        .ENDIF
+        mov eax, dwSpeakers
+        and eax, SPEAKER_TOP_BACK_CENTER
+        .IF eax == SPEAKER_TOP_BACK_CENTER
+            Invoke lstrcat, Addr szSpeakers, Addr sz1TB
+            jmp SpeakersLFE
+        .ENDIF
+    SpeakersLFE:
+        mov eax, dwSpeakers
+        and eax, SPEAKER_LOW_FREQUENCY
+        .IF eax == SPEAKER_LOW_FREQUENCY
+            Invoke lstrcat, Addr szSpeakers, Addr szLFE
+        .ENDIF
+        
+        Invoke lstrcat, lpszStreamText, Addr szSpeakers
+        Invoke lstrcat, lpszStreamText, Addr szMIISpace
+        
+    .ENDIF
+    
+    IFDEF DEBUG32
+    ;PrintText 'Samples per second'
+    ENDIF
+    ; Samples per second
+    mov ebx, pStreamRecord
+    mov eax, [ebx].MFP_STREAM_RECORD.dwSamplesPerSec
+    .IF eax != 0
+        mov dwSamplesPerSec, eax
+        Invoke dwtoa, dwSamplesPerSec, Addr szSamplesPerSec
+        IFDEF __UNICODE__
+        Invoke MFPConvertStringToWide, Addr szSamplesPerSec
+        mov pszwString, eax
+        Invoke lstrcat, lpszStreamText, pszwString
+        Invoke MFPConvertStringFree, pszwString
+        ELSE
+        Invoke lstrcat, lpszStreamText, Addr szSamplesPerSec
+        ENDIF
+        Invoke lstrcat, lpszStreamText, Addr szMIIHz
+        Invoke lstrcat, lpszStreamText, Addr szMIISpace
+    .ENDIF
+    
+    IFDEF DEBUG32
+    ;PrintText 'Bits per sample'
+    ENDIF
+    ; Bits per sample
+    mov ebx, pStreamRecord
+    mov eax, [ebx].MFP_STREAM_RECORD.dwBitsPerSample
+    .IF eax != 0
+        mov dwBitsPerSample, eax
+        Invoke dwtoa, dwBitsPerSample, Addr szBitsPerSample
+        IFDEF __UNICODE__
+        Invoke MFPConvertStringToWide, Addr szBitsPerSample
+        mov pszwString, eax
+        Invoke lstrcat, lpszStreamText, pszwString
+        Invoke MFPConvertStringFree, pszwString
+        ELSE
+        Invoke lstrcat, lpszStreamText, Addr szBitsPerSample
+        ENDIF
+        Invoke lstrcat, lpszStreamText, Addr szMIIbits
+    .ENDIF
+    ret
+MFI_AudioStreamText ENDP
+
+;------------------------------------------------------------------------------
+; MFI_VideoStreamText
+;------------------------------------------------------------------------------
+MFI_VideoStreamText PROC USES EBX pStreamRecord:DWORD, lpszStreamText:DWORD, bMajorType:DWORD, dwStreamNo:DWORD
+    LOCAL dwStreamID:DWORD
+    LOCAL lpszStreamLang:DWORD
+    LOCAL pszwString:DWORD
+    LOCAL dwMajorType:DWORD
+    LOCAL dwSubType:DWORD
+    LOCAL lpszMajorType:DWORD
+    LOCAL lpszSubType:DWORD
+    LOCAL dwBitRate:DWORD
+    LOCAL dwFrameRate:DWORD
+    LOCAL dwFrameWidth:DWORD
+    LOCAL dwFrameHeight:DWORD
+    LOCAL szStreamNumber[12]:BYTE
+    LOCAL szBitRate[16]:BYTE
+    LOCAL szFrameRate[16]:BYTE
+    LOCAL szFrameWidth[16]:BYTE
+    LOCAL szFrameHeight[16]:BYTE
+    
+    IFDEF DEBUG32
+    ;PrintText 'MFI_VideoStreamText'
+    ENDIF
+    
+    IFDEF DEBUG32
+    ;PrintText 'Stream Number'
+    ENDIF
+    ; Stream Number
+    ;mov ebx, pStreamRecord
+    ;mov eax, [ebx].MFP_STREAM_RECORD.dwStreamID
+    ;mov dwStreamID, eax
+    .IF bMajorType == FALSE
+        Invoke dwtoa, dwStreamNo, Addr szStreamNumber ; dwStreamID
+        IFDEF __UNICODE__
+        Invoke MFPConvertStringToWide, Addr szStreamNumber
+        mov pszwString, eax
+        Invoke lstrcpy, lpszStreamText, pszwString
+        Invoke MFPConvertStringFree, pszwString
+        ELSE
+        Invoke lstrcpy, lpszStreamText, Addr szStreamNumber
+        ENDIF
+    .ENDIF
+    
+    IFDEF DEBUG32
+    ;PrintText 'Stream Type'
+    ENDIF
+    ; Stream Type
+    .IF bMajorType == TRUE
+        ;Invoke lstrcat, lpszStreamText, Addr szMIISpace
+        mov ebx, pStreamRecord
+        mov eax, [ebx].MFP_STREAM_RECORD.dwMajorType
+        mov dwMajorType, eax
+        Invoke MFI_MajorTypeToString, dwMajorType, Addr lpszMajorType
+        Invoke lstrcpy, lpszStreamText, lpszMajorType
+    .ENDIF
+    
+    IFDEF DEBUG32
+    ;PrintText 'Stream Language'
+    ENDIF
+    ; Stream Language
+    mov ebx, pStreamRecord
+    lea eax, [ebx].MFP_STREAM_RECORD.szStreamLang
+    mov lpszStreamLang, eax
+    Invoke lstrlen, lpszStreamLang
+    .IF eax != 0
+        Invoke lstrcat, lpszStreamText, Addr szMIISpace
+        Invoke lstrcat, lpszStreamText, Addr szMIILeftBracket
+        IFDEF __UNICODE__
+        Invoke lstrcat, lpszStreamText, lpszStreamLang
+        ELSE
+        Invoke MFPConvertStringToAnsi, lpszStreamLang
+        mov lpszStreamLang, eax
+        Invoke lstrcat, lpszStreamText, lpszStreamLang
+        Invoke MFPConvertStringFree, lpszStreamLang
+        ENDIF
+        Invoke lstrcat, lpszStreamText, Addr szMIIRightBracket
+    .ENDIF
+    Invoke lstrcat, lpszStreamText, Addr szMIIColon
+    Invoke lstrcat, lpszStreamText, Addr szMIISpace
+    
+    IFDEF DEBUG32
+    ;PrintText 'Video Type'
+    ENDIF
+    ; Audio Type
+    mov ebx, pStreamRecord
+    mov eax, [ebx].MFP_STREAM_RECORD.dwSubType
+    mov dwSubType, eax
+    Invoke MFI_VideoTypeToString, dwSubType, Addr lpszSubType, TRUE
+    Invoke lstrcat, lpszStreamText, lpszSubType
+    Invoke lstrcat, lpszStreamText, Addr szMIISpace
+    
+    IFDEF DEBUG32
+    ;PrintText 'Bitrate - kbps'
+    ENDIF
+    mov ebx, pStreamRecord
+    mov eax, [ebx].MFP_STREAM_RECORD.dwBitRate
+    .IF eax != 0
+        mov dwBitRate, eax
+        Invoke dwtoa, dwBitRate, Addr szBitRate
+        IFDEF __UNICODE__
+        Invoke MFPConvertStringToWide, Addr szBitRate
+        mov pszwString, eax
+        Invoke lstrcat, lpszStreamText, pszwString
+        Invoke MFPConvertStringFree, pszwString
+        ELSE
+        Invoke lstrcat, lpszStreamText, Addr szBitRate
+        ENDIF
+        Invoke lstrcat, lpszStreamText, Addr szMIIkbps
+        Invoke lstrcat, lpszStreamText, Addr szMIISpace
+    .ENDIF
+    
+    IFDEF DEBUG32
+    ;PrintText 'Frame rate'
+    ENDIF
+    mov ebx, pStreamRecord
+    mov eax, [ebx].MFP_STREAM_RECORD.dwFrameRate
+    .IF eax != 0
+    mov dwFrameRate, eax
+        Invoke dwtoa, dwFrameRate, Addr szFrameRate
+        IFDEF __UNICODE__
+        Invoke MFPConvertStringToWide, Addr szFrameRate
+        mov pszwString, eax
+        Invoke lstrcat, lpszStreamText, pszwString
+        Invoke MFPConvertStringFree, pszwString
+        ELSE
+        Invoke lstrcat, lpszStreamText, Addr szFrameRate
+        ENDIF
+        Invoke lstrcat, lpszStreamText, Addr szMIIfps
+        Invoke lstrcat, lpszStreamText, Addr szMIISpace
+    .ENDIF
+    
+    IFDEF DEBUG32
+    ;PrintText 'Frame width and height'
+    ENDIF
+    mov ebx, pStreamRecord
+    mov eax, [ebx].MFP_STREAM_RECORD.dwFrameWidth
+    .IF eax != 0
+    mov dwFrameWidth, eax
+        Invoke dwtoa, dwFrameWidth, Addr szFrameWidth
+        IFDEF __UNICODE__
+        Invoke MFPConvertStringToWide, Addr szFrameWidth
+        mov pszwString, eax
+        Invoke lstrcat, lpszStreamText, pszwString
+        Invoke MFPConvertStringFree, pszwString
+        ELSE
+        Invoke lstrcat, lpszStreamText, Addr szFrameWidth
+        ENDIF
+        Invoke lstrcat, lpszStreamText, Addr szMIIx
+        
+        mov ebx, pStreamRecord
+        mov eax, [ebx].MFP_STREAM_RECORD.dwFrameHeight
+        mov dwFrameHeight, eax
+        Invoke dwtoa, dwFrameHeight, Addr szFrameHeight
+        IFDEF __UNICODE__
+        Invoke MFPConvertStringToWide, Addr szFrameHeight
+        mov pszwString, eax
+        Invoke lstrcat, lpszStreamText, pszwString
+        Invoke MFPConvertStringFree, pszwString
+        ELSE
+        Invoke lstrcat, lpszStreamText, Addr szFrameHeight
+        ENDIF
+    .ENDIF
+    
+    ret
+
+MFI_VideoStreamText ENDP
 
 ;------------------------------------------------------------------------------
 ; MFI_MajorTypeToString

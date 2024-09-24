@@ -21,6 +21,8 @@ _MPWInit                    PROTO hWin:DWORD
 
 
 .DATA
+ALIGN 4
+
 IFDEF __UNICODE__
 szMPWClass                  DB 'M',0,'e',0,'d',0,'i',0,'a',0,'P',0,'l',0,'a',0,'y',0,'e',0,'r',0,'W',0,'i',0,'n',0,'d',0,'o',0,'w',0
                             DB 0,0,0,0

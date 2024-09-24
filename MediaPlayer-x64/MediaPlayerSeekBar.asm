@@ -84,6 +84,8 @@ MPSB_FS_POSCOLORFROM    EQU RGB(100,168,232)
 MPSB_FS_POSCOLORTO      EQU RGB(76,150,220)
 
 .DATA
+ALIGN 4
+
 IFDEF __UNICODE__
 szMPSBClass             DB 'M',0,'e',0,'d',0,'i',0,'a',0,'P',0,'l',0,'a',0,'y',0,'e',0,'r',0,'S',0,'e',0,'e',0,'k',0,'B',0,'a',0,'r',0     ; Class name for creating our MediaPlayerSeekBar control
                         DB 0,0,0,0
@@ -775,6 +777,9 @@ _MPSBTimerProc PROC FRAME lpParam:QWORD, TimerOrWaitFired:QWORD
         Invoke GetWindowLongPtr, lpParam, @MPSB_MouseDown
         .IF rax == TRUE
             ret ; skip whilst user is moving the bar around    
+        .ENDIF
+        .IF g_SelectStream == TRUE
+            ret
         .ENDIF
         Invoke GetWindowLongPtr, lpParam, @MPSB_MediaWindow
         Invoke IsWindow, rax

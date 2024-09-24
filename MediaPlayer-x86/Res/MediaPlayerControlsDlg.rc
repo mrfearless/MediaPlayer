@@ -1,13 +1,9 @@
 #define IDD_MediaPlayerControls 3000
-#define IDC_MPC_ToolbarControls 3008
-#define IDC_MPC_ToolbarVolume 3009
-#define IDC_MPC_ToolbarScreen 3012
+#define IDC_MPC_ToolbarControls 3020
 IDD_MediaPlayerControls DIALOGEX 0,0,376,30
 FONT 8,"Segoe UI",400,0
 STYLE 0x50000400
 EXSTYLE 0x00010000
 BEGIN
   CONTROL "",IDC_MPC_ToolbarControls,"ToolbarWindow32",0x5001A14C,0,3,376,22,0x00000000
-  CONTROL "",IDC_MPC_ToolbarVolume,"ToolbarWindow32",NOT 0x10000000|0x4801A14C,583,0,106,22,0x00000000
-  CONTROL "",IDC_MPC_ToolbarScreen,"ToolbarWindow32",NOT 0x10000000|0x4801A94C,690,3,80,22,0x00000000
 END

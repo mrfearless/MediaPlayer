@@ -15,7 +15,10 @@ MediaPlayerControlsUpdate   PROTO hWin:QWORD
 _MPCInit                    PROTO hWin:QWORD
 _MPCPaint                   PROTO hWin:QWORD
 _MPCToolbarCustomdraw       PROTO hWin:QWORD, hToolbar:QWORD, lParam:QWORD, bDialog:QWORD
-ToolBarScreenAspectDropdown PROTO hWin:QWORD
+
+
+ToolBarPlaySpeedDropdown    PROTO hWin:QWORD
+ToolBarAudioStreamDropdown  PROTO hWin:QWORD
 
 IFNDEF ImageList_AddIcon
 ImageList_AddIcon           PROTO himl:QWORD, hicon:QWORD
@@ -31,67 +34,89 @@ TB_ADDBUTTONSA equ WM_USER + 20
 TB_ADDBUTTONS equ TB_ADDBUTTONSA
 ENDIF
 
+IFNDEF TBBUTTON
+TBBUTTON STRUCT
+  iBitmap           DWORD      ?
+  idCommand         DWORD      ?
+  fsState           BYTE       ?
+  fsStyle           BYTE       ?
+  _wPad1            WORD       ?
+  dwData            DWORD      ?
+  iString           DWORD      ?
+TBBUTTON ENDS
+ENDIF
+
+IFNDEF NMTOOLBARA
+NMTOOLBARA STRUCT
+  hdr               NMHDR  <>
+  iItem             DWORD  ?
+  tbButton          TBBUTTON  <>
+  cchText           DWORD  ?
+  pszText           DWORD  ?
+  rcButton          RECT  <>
+NMTOOLBARA ENDS
+ENDIF
+
+IFNDEF NMTOOLBARW
+NMTOOLBARW STRUCT
+  hdr               NMHDR  <>
+  iItem             DWORD  ?
+  tbButton          TBBUTTON  <>
+  cchText           DWORD  ?
+  pszText           DWORD  ?
+  rcButton          RECT  <>
+NMTOOLBARW ENDS
+ENDIF
+
+IFDEF __UNICODE__
+NMTOOLBAR equ <NMTOOLBARW>
+ELSE
+NMTOOLBAR equ <NMTOOLBARA>
+ENDIF
+
 .CONST
 ; MediaPlayer Seek Bar Control Messages:
 MPCM_UPDATE             EQU WM_USER + 2003 ; update buttons based on media player state (play/pause/stop)
 
 ; MediaPlayerControls Icon IDs
-ICO_MPC_OPEN            EQU 300
-ICO_MPC_STOP            EQU 301
-ICO_MPC_PAUSE           EQU 302
-ICO_MPC_PLAY            EQU 303
-ICO_MPC_STEP            EQU 304
-ICO_MPC_EXIT            EQU 305
-ICO_MPC_FULLSCREEN      EQU 306
-ICO_MPC_ABOUT           EQU 307
-ICO_MPC_A_STRETCH       EQU 308
-ICO_MPC_A_NORMAL        EQU 309
-ICO_MPC_VOLUME          EQU 310
-ICO_MPC_MUTE            EQU 311
-ICO_MPC_STEP10F         EQU 312
-ICO_MPC_STEP10B         EQU 313
-ICO_MPC_FASTER          EQU 314
-ICO_MPC_SLOWER          EQU 315
+ICO_MPC_STOP            EQU 300
+ICO_MPC_PAUSE           EQU 301
+ICO_MPC_PLAY            EQU 302
+ICO_MPC_STEP            EQU 303
+ICO_MPC_FULLSCREEN      EQU 304
+ICO_MPC_ABOUT           EQU 305
+ICO_MPC_VOLUME          EQU 306
+ICO_MPC_MUTE            EQU 307
+ICO_MPC_STEP10F         EQU 308
+ICO_MPC_STEP10B         EQU 309
+ICO_MPC_PLAYSPEED       EQU 310
 
 ; MediaPlayerControls.dlg
 IDD_MediaPlayerControls	EQU 3000
-IDC_MPC_Open		    EQU 3001
-IDC_MPC_Stop		    EQU 3002
-IDC_MPC_Pause		    EQU 3003
-IDC_MPC_Play		    EQU 3004
-IDC_MPC_PlayPauseToggle EQU 3004
-IDC_MPC_Step		    EQU 3005
-IDC_MPC_Fullscreen	    EQU 3006
-IDC_MPC_Exit		    EQU 3007
-IDC_MPC_ToolbarControls EQU 3008
-IDC_MPC_ToolbarVolume   EQU 3009
-IDC_MPC_VolumeToggle    EQU 3010
-IDC_MPC_VolumeSlider    EQU 3011
-IDC_MPC_ToolbarScreen   EQU 3012
-IDC_MPC_Aspect          EQU 3013
-IDC_MPC_About           EQU 3014
-IDC_MPC_Step10F         EQU 3015
-IDC_MPC_Step10B         EQU 3016
-IDC_MPC_Faster          EQU 3017
-IDC_MPC_Slower          EQU 3018
+IDC_MPC_Stop		    EQU 3001
+IDC_MPC_PlayPauseToggle EQU 3002
+IDC_MPC_Step		    EQU 3003
+IDC_MPC_Fullscreen	    EQU 3004
+IDC_MPC_About           EQU 3005
+IDC_MPC_Step10F         EQU 3008
+IDC_MPC_Step10B         EQU 3009
+IDC_MPC_PlaySpeed       EQU 3010
+IDC_MPC_VolumeToggle    EQU 3015
+IDC_MPC_VolumeSlider    EQU 3016
+IDC_MPC_ToolbarControls EQU 3020
 
 ; MediaPlayerControls Toolbar Control IDs
-TBID_MPC_Open           EQU 0
-TBID_MPC_Stop           EQU 1
-TBID_MPC_Pause          EQU 2
-TBID_MPC_Play           EQU 3
-TBID_MPC_Step           EQU 4
-TBID_MPC_Exit           EQU 5
-TBID_MPC_Fullscreen     EQU 6
-TBID_MPC_About          EQU 7
-TBID_MPC_A_STRETCH      EQU 8
-TBID_MPC_A_NORMAL       EQU 9
-TBID_MPC_Volume         EQU 10
-TBID_MPC_Mute           EQU 11
-TBID_MPC_Step10F        EQU 12
-TBID_MPC_Step10B        EQU 13
-TBID_MPC_Faster         EQU 14
-TBID_MPC_Slower         EQU 15
+TBID_MPC_Stop           EQU 0
+TBID_MPC_Pause          EQU 1
+TBID_MPC_Play           EQU 2
+TBID_MPC_Step           EQU 3
+TBID_MPC_Fullscreen     EQU 4
+TBID_MPC_About          EQU 5
+TBID_MPC_Volume         EQU 6
+TBID_MPC_Mute           EQU 7
+TBID_MPC_Step10F        EQU 8
+TBID_MPC_Step10B        EQU 9
+TBID_MPC_PlaySpeed      EQU 10
 
 ; MediaPlayerControls Toolbar Colors
 TB_TEXTCOLOR            EQU RGB(31,31,31)
@@ -100,17 +125,12 @@ TB_FS_TEXTCOLOR         EQU RGB(240,240,240)
 TB_BACKCOLOR            EQU MAINWINDOW_BACKCOLOR ;RGB(240,240,240)
 TB_FS_BACKCOLOR         EQU MAINWINDOW_FS_BACKCOLOR ; RGB(81,81,81)
 
-
-.DATA
-
-
 .DATA?
+ALIGN 4
+
 ; MediaPlayerControls Handles
 hMPC_ToolbarControls    DQ ?
-hMPC_ToolbarVolume      DQ ?
-hMPC_ToolbarScreen      DQ ?
 hMPC_ImageList_Enabled  DQ ?
-hMPC_ImageList_Disabled DQ ?
 hMPC_VolumeSlider       DQ ?
 
 .CODE
@@ -133,13 +153,7 @@ MediaPlayerControlsProc PROC FRAME USES RBX hWin:HWND, uMsg:UINT, wParam:WPARAM,
         mov rax, wParam
         and rax, 0FFFFh
         
-        .IF eax == IDC_MPC_Open
-            Invoke MediaPlayerBrowseForFile, hMainWindow
-            .IF rax == TRUE
-                Invoke MediaPlayerOpenFile, hMainWindow, lpszMediaFileName
-            .ENDIF
-            
-        .ELSEIF eax == IDC_MPC_Stop
+        .IF eax == IDC_MPC_Stop
             .IF pMI != 0
                 Invoke MFPMediaPlayer_Stop, pMP
             .ENDIF
@@ -176,16 +190,15 @@ MediaPlayerControlsProc PROC FRAME USES RBX hWin:HWND, uMsg:UINT, wParam:WPARAM,
                 Invoke MFPMediaPlayer_SetMute, pMP, TRUE
                 Invoke MediaPlayerVolumeSet, hMPC_VolumeSlider, 0
             .ENDIF
-        
-        .ELSEIF eax == IDC_MPC_Aspect ; see TBN_DROPDOWN for dropdown part of Aspect button
-            Invoke ToolBarScreenAspectDropdown, hWin
-            ret
-        
+
         .ELSEIF eax == IDC_MPC_About
-            Invoke DialogBoxParam, hInstance, IDD_AboutDlg, hWin, Addr MediaPlayerAboutDlgProc, NULL
-            
-        .ELSEIF eax == IDC_MPC_Exit
-            Invoke SendMessage, hMainWindow, WM_CLOSE, 0, 0
+            Invoke GetKeyState, VK_CONTROL
+            and eax, 8000h
+            .IF eax == 8000h ; Ctrl + click on about menu item opens folder with ini file
+                Invoke ShellExecute, hWin, Addr szShellExplore, Addr MediaPlayerIniFolder, NULL, NULL, SW_SHOW
+            .ELSE
+                Invoke DialogBoxParam, hInstance, IDD_AboutDlg, hWin, Addr MediaPlayerAboutDlgProc, NULL
+            .ENDIF
             
         .ELSEIF eax == IDC_MPC_Step10F
             Invoke MPSBStepPosition, hMediaPlayerSeekBar, 10, TRUE
@@ -193,25 +206,8 @@ MediaPlayerControlsProc PROC FRAME USES RBX hWin:HWND, uMsg:UINT, wParam:WPARAM,
         .ELSEIF eax == IDC_MPC_Step10B
             Invoke MPSBStepPosition, hMediaPlayerSeekBar, 10, FALSE
             
-        .ELSEIF eax == IDC_MPC_Slower
-            .IF pMI != 0
-                xor rax, rax
-                mov eax, dwCurrentRate
-                shr eax, 1 ; /2
-                .IF eax >= MPF_MIN_RATE
-                    Invoke GUISetPositionTime, dwPositionTimeMS
-                    Invoke MFPMediaPlayer_SetRate, pMP, eax
-                .ENDIF
-            .ENDIF
-            
-        .ELSEIF eax == IDC_MPC_Faster
-            .IF pMI != 0
-                xor rax, rax
-                mov eax, dwCurrentRate
-                shl eax, 1 ; x2
-                Invoke MFPMediaPlayer_SetRate, pMP, eax
-                Invoke GUISetPositionTime, dwPositionTimeMS
-            .ENDIF
+        .ELSEIF eax == IDC_MPC_PlaySpeed
+            Invoke ToolBarPlaySpeedDropdown, hWin
             
         .ENDIF
     
@@ -224,38 +220,28 @@ MediaPlayerControlsProc PROC FRAME USES RBX hWin:HWND, uMsg:UINT, wParam:WPARAM,
         .IF eax == TTN_NEEDTEXT
             mov rbx, lParam
             mov rax, [rbx].NMHDR.idFrom
-            .IF rax == IDC_MPC_Open
-                lea rax, szTip_MPC_Open
-            .ELSEIF rax == IDC_MPC_Stop
-                lea rax, szTip_MPC_Stop
-            .ELSEIF rax == IDC_MPC_Pause
-                lea rax, szTip_MPC_Pause
-            .ELSEIF rax == IDC_MPC_Play
-                lea rax, szTip_MPC_Play
-            .ELSEIF rax == IDC_MPC_Step
-                lea rax, szTip_MPC_Step
-            .ELSEIF rax == IDC_MPC_Fullscreen
-                lea rax, szTip_MPC_Fullscreen
-            .ELSEIF rax == IDC_MPC_Exit
-                lea rax, szTip_MPC_Exit
-            .ELSEIF rax == IDC_MPC_VolumeToggle
-                lea rax, szTip_MPC_VolumeToggle
-            .ELSEIF rax == IDC_MPC_Aspect
-                lea rax, szTip_MPC_Aspect
-            .ELSEIF rax == IDC_MPC_About
+            .IF eax == IDC_MPC_Stop
+                mov rax, lpszTip_MPC_Stop
+            .ELSEIF eax == IDC_MPC_PlayPauseToggle
+                mov rax, lpszTip_MPC_Play
+            .ELSEIF eax == IDC_MPC_Step
+                mov rax, lpszTip_MPC_Step
+            .ELSEIF eax == IDC_MPC_Fullscreen
+                mov rax, lpszTip_MPC_Fullscreen
+            .ELSEIF eax == IDC_MPC_VolumeToggle
+                mov rax, lpszTip_MPC_VolumeToggle
+            .ELSEIF eax == IDC_MPC_About
                 .IF pszMediaItemInfo == 0
-                    lea rax, szTip_MPC_About
+                    mov rax, lpszTip_MPC_About
                 .ELSE
                     mov rax, pszMediaItemInfo
                 .ENDIF
             .ELSEIF eax == IDC_MPC_Step10F
-                lea rax, szTip_MPC_Step10F
+                mov rax, lpszTip_MPC_Step10F
             .ELSEIF eax == IDC_MPC_Step10B
-                lea rax, szTip_MPC_Step10B
-            .ELSEIF eax == IDC_MPC_Faster
-                lea rax, szTip_MPC_Faster
-            .ELSEIF eax == IDC_MPC_Slower
-                lea rax, szTip_MPC_Slower
+                mov rax, lpszTip_MPC_Step10B
+            .ELSEIF eax == IDC_MPC_PlaySpeed
+                mov rax, lpszTip_MPC_PlaySpeed
             .ELSE
                 ret   
             .ENDIF
@@ -270,15 +256,19 @@ MediaPlayerControlsProc PROC FRAME USES RBX hWin:HWND, uMsg:UINT, wParam:WPARAM,
             mov rax, (NMHDR PTR [rbx]).hwndFrom
             .IF rax == hMPC_ToolbarControls
                 Invoke _MPCToolbarCustomdraw, hWin, hMPC_ToolbarControls, lParam, TRUE
-;            .ELSEIF rax == hMPC_ToolbarVolume
-;                Invoke _MPCToolbarCustomdraw, hWin, hMPC_ToolbarVolume, lParam, TRUE
-;            .ELSEIF rax == hMPC_ToolbarScreen
-;                Invoke _MPCToolbarCustomdraw, hWin, hMPC_ToolbarScreen, lParam, TRUE
             .ENDIF
             ret
             
         .ELSEIF eax == TBN_DROPDOWN ; for dropdown part of Aspect button
-            Invoke ToolBarScreenAspectDropdown, hWin
+            mov rbx, lParam
+            mov eax, dword ptr (NMTOOLBAR PTR [rbx]).iItem
+            .IF eax == IDC_MPC_PlaySpeed
+                Invoke ToolBarPlaySpeedDropdown, hWin
+            
+            .ELSEIF eax == IDC_MPC_VolumeToggle
+                Invoke ToolBarAudioStreamDropdown, hWin
+                
+            .ENDIF
             mov rax, TBDDRET_DEFAULT
             ret
             
@@ -324,17 +314,10 @@ _MPCInit PROC FRAME USES RBX hWin:QWORD
     mov hMPC_ImageList_Enabled, rax
     
     Invoke SendMessage, hMPC_ToolbarControls, TB_SETIMAGELIST, 0, hMPC_ImageList_Enabled
-    Invoke SendMessage, hMPC_ToolbarControls, TB_SETEXTENDEDSTYLE, TBSTYLE_EX_DOUBLEBUFFER, TBSTYLE_EX_DOUBLEBUFFER
+    Invoke SendMessage, hMPC_ToolbarControls, TB_SETEXTENDEDSTYLE, TBSTYLE_EX_DOUBLEBUFFER or TBSTYLE_EX_DRAWDDARROWS, TBSTYLE_EX_DOUBLEBUFFER or TBSTYLE_EX_DRAWDDARROWS
+    Invoke SendMessage, hMPC_ToolbarControls, TB_SETANCHORHIGHLIGHT, FALSE, 0
 
     ; Media Player Images
-    IFDEF MP_RTLC_RESOURCES
-    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_OPEN
-    ELSE    
-    Invoke LoadImage, hInstance, ICO_MPC_OPEN, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
-    ENDIF
-    mov hIcon, rax
-    Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
-    
     IFDEF MP_RTLC_RESOURCES
     Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_STOP
     ELSE  
@@ -368,14 +351,6 @@ _MPCInit PROC FRAME USES RBX hWin:QWORD
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
     
     IFDEF MP_RTLC_RESOURCES
-    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_EXIT
-    ELSE  
-    Invoke LoadImage, hInstance, ICO_MPC_EXIT, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
-    ENDIF
-    mov hIcon, rax
-    Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
-    
-    IFDEF MP_RTLC_RESOURCES
     Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_FULLSCREEN
     ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_FULLSCREEN, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
@@ -387,22 +362,6 @@ _MPCInit PROC FRAME USES RBX hWin:QWORD
     Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_ABOUT
     ELSE  
     Invoke LoadImage, hInstance, ICO_MPC_ABOUT, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
-    ENDIF
-    mov hIcon, rax
-    Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
-    
-    IFDEF MP_RTLC_RESOURCES
-    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_A_STRETCH
-    ELSE  
-    Invoke LoadImage, hInstance, ICO_MPC_A_STRETCH, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
-    ENDIF
-    mov hIcon, rax
-    Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
-    
-    IFDEF MP_RTLC_RESOURCES
-    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_A_NORMAL
-    ELSE  
-    Invoke LoadImage, hInstance, ICO_MPC_A_NORMAL, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
     ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
@@ -438,19 +397,11 @@ _MPCInit PROC FRAME USES RBX hWin:QWORD
     ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
-    
+
     IFDEF MP_RTLC_RESOURCES
-    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_FASTER
+    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_PLAYSPEED
     ELSE  
-    Invoke LoadImage, hInstance, ICO_MPC_FASTER, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
-    ENDIF
-    mov hIcon, rax
-    Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
-    
-    IFDEF MP_RTLC_RESOURCES
-    Invoke IconCreateFromCompressedRes, hInstance, ICO_MPC_SLOWER
-    ELSE  
-    Invoke LoadImage, hInstance, ICO_MPC_SLOWER, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
+    Invoke LoadImage, hInstance, ICO_MPC_PLAYSPEED, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR
     ENDIF
     mov hIcon, rax
     Invoke ImageList_AddIcon, hMPC_ImageList_Enabled, hIcon
@@ -474,32 +425,33 @@ _MPCInit PROC FRAME USES RBX hWin:QWORD
 	mov tbb.iBitmap, TBID_MPC_Stop
 	mov tbb.idCommand, IDC_MPC_Stop
 	mov tbb.fsStyle, TBSTYLE_BUTTON
-	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb	
+	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
 
 	mov tbb.iBitmap, TBID_MPC_Play
 	mov tbb.idCommand, IDC_MPC_PlayPauseToggle
 	mov tbb.fsStyle, TBSTYLE_BUTTON
-	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb	
+	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
 	
 	mov tbb.iBitmap, TBID_MPC_Step
 	mov tbb.idCommand, IDC_MPC_Step
 	mov tbb.fsStyle, TBSTYLE_BUTTON
-	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb	
-	
-	mov tbb.iBitmap, 16
+	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
+	; 96 ; 126
+	mov tbb.iBitmap, 14
 	mov tbb.idCommand, -1
     mov tbb.fsStyle, TBSTYLE_SEP ; removed flat style from this toolbar to hide seperator line
     Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
+	; 128 ; 158
 	
-	mov tbb.iBitmap, TBID_MPC_Slower
-	mov tbb.idCommand, IDC_MPC_Slower
-	mov tbb.fsStyle, TBSTYLE_BUTTON
+	mov tbb.iBitmap, TBID_MPC_PlaySpeed
+	mov tbb.idCommand, IDC_MPC_PlaySpeed
+	mov tbb.fsStyle, TBSTYLE_BUTTON or TBSTYLE_DROPDOWN
 	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
 	
-	mov tbb.iBitmap, TBID_MPC_Faster
-	mov tbb.idCommand, IDC_MPC_Faster
-	mov tbb.fsStyle, TBSTYLE_BUTTON
-	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
+	mov tbb.iBitmap, 2
+	mov tbb.idCommand, -1
+    mov tbb.fsStyle, TBSTYLE_SEP ; removed flat style from this toolbar to hide seperator line
+    Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
 	
 	mov tbb.iBitmap, TBID_MPC_Step10B
 	mov tbb.idCommand, IDC_MPC_Step10B
@@ -510,15 +462,15 @@ _MPCInit PROC FRAME USES RBX hWin:QWORD
 	mov tbb.idCommand, IDC_MPC_Step10F
 	mov tbb.fsStyle, TBSTYLE_BUTTON
 	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
-	
-	mov tbb.iBitmap, 16
+	;256 ;326
+	mov tbb.iBitmap, 14
 	mov tbb.idCommand, -1
     mov tbb.fsStyle, TBSTYLE_SEP ; removed flat style from this toolbar to hide seperator line
     Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
-
+	;288 ; 358
 	mov tbb.iBitmap, TBID_MPC_Volume
 	mov tbb.idCommand, IDC_MPC_VolumeToggle
-	mov tbb.fsStyle, TBSTYLE_CHECK ;TBSTYLE_BUTTON
+	mov tbb.fsStyle, TBSTYLE_CHECK or TBSTYLE_DROPDOWN;TBSTYLE_BUTTON
 	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
     ;320 ; 400
     mov tbb.iBitmap, 116 ;230
@@ -526,7 +478,7 @@ _MPCInit PROC FRAME USES RBX hWin:QWORD
     mov tbb.fsStyle, TBSTYLE_SEP ; removed flat style from this toolbar to hide seperator line
     Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
     ;630
-	mov tbb.iBitmap, 18
+	mov tbb.iBitmap, 12 ;18
 	mov tbb.idCommand, -1
     mov tbb.fsStyle, TBSTYLE_SEP ; removed flat style from this toolbar to hide seperator line
     Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
@@ -535,7 +487,7 @@ _MPCInit PROC FRAME USES RBX hWin:QWORD
 	mov tbb.idCommand, IDC_MPC_Fullscreen
 	mov tbb.fsStyle, TBSTYLE_BUTTON
 	Invoke SendMessage, hMPC_ToolbarControls, TB_ADDBUTTONS, 1, Addr tbb
-
+	
 	mov tbb.iBitmap, TBID_MPC_About
 	mov tbb.idCommand, IDC_MPC_About
 	mov tbb.fsStyle, TBSTYLE_BUTTON
@@ -800,43 +752,116 @@ MediaPlayerControlsUpdate PROC FRAME hWin:QWORD
 MediaPlayerControlsUpdate ENDP
 
 ;-------------------------------------------------------------------------------------
-; From Toolbar Add button, show dropdown menu
+; From Toolbar PlaySpeed show dropdown menu
 ;-------------------------------------------------------------------------------------
-ToolBarScreenAspectDropdown PROC FRAME USES RBX hWin:QWORD
+ToolBarPlaySpeedDropdown PROC FRAME USES RBX hWin:QWORD
     LOCAL xpos:DWORD
     LOCAL ypos:DWORD
     LOCAL rect:RECT
     LOCAL nLeft:DWORD
     LOCAL nHeight:DWORD
+    LOCAL mwp:DWORD
 
-    IFDEF DEBUG64
-    ;PrintText 'ToolBarScreenAspectDropdown'
+    IFDEF DEBUG32
+    ;PrintText 'ToolBarPlaySpeedDropdown'
     ENDIF
-
-    Invoke SendMessage, hMPC_ToolbarScreen, TB_GETITEMRECT, 1, Addr rect
     
-    mov eax, rect.left
+    .IF hMediaPlayerSpeedMenu == 0
+        ret
+    .ENDIF
+    
+    Invoke SendMessage, hMPC_ToolbarControls, TB_GETITEMRECT, 4, Addr rect
+    
+    .IF g_LangRTL == TRUE
+        mov eax, rect.right
+    .ELSE
+        mov eax, rect.left
+    .ENDIF
     mov nLeft, eax
     
+    xor rax, rax
+    xor rbx, rbx
     mov eax, rect.bottom
     mov ebx, rect.top
     sub eax, ebx
- 
     mov nHeight, eax
-    Invoke MapWindowPoints, hMPC_ToolbarScreen, NULL, Addr rect, 2
-    push rax
+    
+    Invoke MapWindowPoints, hMPC_ToolbarControls, NULL, Addr rect, 2
+    mov mwp, eax
+    
     shr eax, 16
     add eax, nHeight
     mov ypos, eax
-    pop rax
+    
+    mov eax, mwp
     and	eax, 0FFFFh
     add eax, nLeft
     mov xpos, eax
 
-	Invoke TrackPopupMenu, hMediaPlayerAspectMenu, TPM_LEFTALIGN or TPM_LEFTBUTTON, xpos, ypos, NULL, hMainWindow, NULL
+    .IF g_LangRTL == TRUE
+        Invoke TrackPopupMenu, hMediaPlayerSpeedMenu, TPM_LAYOUTRTL or TPM_RIGHTALIGN or TPM_LEFTBUTTON, xpos, ypos, NULL, hWin, NULL
+	.ELSE
+	    Invoke TrackPopupMenu, hMediaPlayerSpeedMenu, TPM_LEFTALIGN or TPM_LEFTBUTTON, xpos, ypos, NULL, hMainWindow, NULL
+	.ENDIF
 	
     ret
-ToolBarScreenAspectDropdown ENDP
+ToolBarPlaySpeedDropdown ENDP
+
+;-------------------------------------------------------------------------------------
+; From Toolbar Audio Stream show dropdown menu
+;-------------------------------------------------------------------------------------
+ToolBarAudioStreamDropdown PROC FRAME USES RBX hWin:QWORD
+    LOCAL xpos:DWORD
+    LOCAL ypos:DWORD
+    LOCAL rect:RECT
+    LOCAL nLeft:DWORD
+    LOCAL nHeight:DWORD
+    LOCAL mwp:DWORD
+
+    IFDEF DEBUG32
+    ;PrintText 'ToolBarAudioStreamDropdown'
+    ENDIF
+    
+    .IF hMediaPlayerAudioMenu == 0
+        ret
+    .ENDIF
+    
+    Invoke SendMessage, hMPC_ToolbarControls, TB_GETITEMRECT, 9, Addr rect
+    
+    .IF g_LangRTL == TRUE
+        mov eax, rect.right
+    .ELSE
+        mov eax, rect.left
+    .ENDIF
+    mov nLeft, eax
+    
+    xor rax, rax
+    xor rbx, rbx
+    mov eax, rect.bottom
+    mov ebx, rect.top
+    sub eax, ebx
+    mov nHeight, eax
+    
+    Invoke MapWindowPoints, hMPC_ToolbarControls, NULL, Addr rect, 2
+    mov mwp, eax
+    
+    shr eax, 16
+    add eax, nHeight
+    mov ypos, eax
+    
+    mov eax, mwp
+    and	eax, 0FFFFh
+    add eax, nLeft
+    mov xpos, eax
+
+    .IF g_LangRTL == TRUE
+        Invoke TrackPopupMenu, hMediaPlayerAudioMenu, TPM_LAYOUTRTL or TPM_RIGHTALIGN or TPM_LEFTBUTTON, xpos, ypos, NULL, hWin, NULL
+	.ELSE
+	    Invoke TrackPopupMenu, hMediaPlayerAudioMenu, TPM_LEFTALIGN or TPM_LEFTBUTTON, xpos, ypos, NULL, hMainWindow, NULL
+	.ENDIF
+    ret
+
+ToolBarAudioStreamDropdown ENDP
 
 
 

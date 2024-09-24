@@ -38,6 +38,8 @@ IDM_MRU_CLEAR               EQU IDM_MRU - (MRU_MAXFILES +9) ; 19981
 IDM_MRU_SEP2                EQU IDM_MRU - (MRU_MAXFILES +10) ; 19980
 
 .DATA
+ALIGN 4
+
 ;--------------------------------------
 ; Ini strings
 ;--------------------------------------
@@ -325,7 +327,7 @@ IniMRULoadListToMenu PROC hWin:DWORD, lpszIniFilename:DWORD, dwMenuInsertID:DWOR
 
 	.IF nTotalMRUs > 0
 		Invoke InsertMenu, hMainMenu, dwMenuInsertID, MF_SEPARATOR or MF_BYCOMMAND, IDM_MRU_SEP1, NULL
-		Invoke InsertMenu, hMainMenu, dwMenuInsertID, MF_STRING	or MF_BYCOMMAND, IDM_MRU_CLEAR, Addr szMRUClear
+		Invoke InsertMenu, hMainMenu, dwMenuInsertID, MF_STRING	or MF_BYCOMMAND, IDM_MRU_CLEAR, lpszMRUClear ;Addr szMRUClear
 		.IF hMRUClearBitmap != 0
 		    Invoke SetMenuItemBitmaps, hMainMenu, IDM_MRU_CLEAR, MF_BYCOMMAND, hMRUClearBitmap, 0
 		.ENDIF

@@ -23,6 +23,8 @@ IDC_TxtInfo                     EQU 17004
 IDC_TxtVersion                  EQU 17005
 
 .DATA
+ALIGN 4
+
 IFDEF __UNICODE__
 mrfearless_github               DB "h",0,"t",0,"t",0,"p",0,"s",0,":",0,"/",0,"/",0,"g",0,"i",0,"t",0,"h",0,"u",0,"b",0,".",0,"c",0,"o",0,"m",0
                                 DB "/",0,"m",0,"r",0,"f",0,"e",0,"a",0,"r",0,"l",0,"e",0,"s",0,"s",0
@@ -30,9 +32,11 @@ mrfearless_github               DB "h",0,"t",0,"t",0,"p",0,"s",0,":",0,"/",0,"/"
                                 DB 0,0,0,0
 szShellOpen                     DB "o",0,"p",0,"e",0,"n",0
                                 DB 0,0,0,0
+                                
 szAboutBoxInfoText              DB "M",0,"e",0,"d",0,"i",0,"a",0,"P",0,"l",0,"a",0,"y",0,"e",0,"r",0," ",0,"u",0,"s",0,"e",0,"s",0," ",0,"t",0,"h",0,"e",0," ",0
                                 DB "c",0,"u",0,"s",0,"t",0,"o",0,"m",0," ",0,"M",0,"F",0,"P",0,"l",0,"a",0,"y",0,"e",0,"r",0,".",0,"l",0,"i",0,"b",0," ",0
-                                DB "l",0,"i",0,"b",0,"r",0,"a",0,"r",0,"y",0," ",0,"f",0,"u",0,"n",0,"c",0,"t",0,"i",0,"o",0,"n",0,"s",0,13,0,10,0
+                                DB "l",0,"i",0,"b",0,"r",0,"a",0,"r",0,"y",0," ",0,"f",0,"u",0,"n",0,"c",0,"t",0,"i",0,"o",0,"n",0,"s",0
+                                DB 13,0,10,0
                                 DB "w",0,"h",0,"i",0,"c",0,"h",0," ",0,"w",0,"r",0,"a",0,"p",0," ",0,"t",0,"h",0,"e",0," ",0,"m",0,"e",0,"t",0,"h",0,"o",0,"d",0,"s",0," ",0
                                 DB "o",0,"f",0," ",0,"t",0,"h",0,"e",0," ",0,"M",0,"F",0,"P",0,"l",0,"a",0,"y",0," ",0,"C",0,"O",0,"M",0," ",0
                                 DB "O",0,"b",0,"j",0,"e",0,"c",0,"t",0,"s",0,":",0," ",0,13,0,10,0
@@ -89,7 +93,7 @@ MediaPlayerAboutDlgProc PROC USES EBX hWin:HWND, iMsg:DWORD, wParam:WPARAM, lPar
         mov hTxtVersion, eax
         Invoke GetDlgItem, hWin, IDC_ABOUT_BANNER
         mov hAboutBanner, eax
-
+        
         Invoke SetWindowText, hTxtInfo, Addr szAboutBoxInfoText
         
         ;----------------------------------------------------------------------

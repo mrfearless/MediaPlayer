@@ -10,10 +10,12 @@
 #define IDM_MC_Aspect 10028
 #define IDM_MC_VA_Stretch 10029
 #define IDM_MC_VA_Normal 10030
-#define IDM_MC_Speed 10031
+#define IDM_MC_PlaySpeed 10031
 #define IDM_MC_PS_Slower 10032
 #define IDM_MC_PS_Faster 10033
+#define IDM_MC_AudioStreams 10040
 #define IDM_FILE_Exit 10002
+#define IDM_UNAVAILABLE 12099
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
@@ -29,8 +31,13 @@ BEGIN
     MENUITEM "Start &Playing\tCtrl+P",IDM_MC_Play
     MENUITEM "Frame Step",IDM_MC_Step
     MENUITEM "",,0x00000800
-    MENUITEM "Step Backward 10 Seconds\tCtrl+B",IDM_MC_Step10B
-    MENUITEM "Step Forward 10 Seconds\tCtrl+F",IDM_MC_Step10F
+    MENUITEM "Step Backward 10 Seconds\tCtrl+Left",IDM_MC_Step10B
+    MENUITEM "Step Forward 10 Seconds\tCtrl+Right",IDM_MC_Step10F
+    MENUITEM "",,0x00000800
+    POPUP "Playback Speed",IDM_MC_PlaySpeed
+    BEGIN
+      MENUITEM "Unavailable",IDM_UNAVAILABLE
+    END
     MENUITEM "",,0x00000800
     MENUITEM "Toggle Fullscreen\tF11",IDM_MC_Fullscreen
     POPUP "Video Aspect",IDM_MC_Aspect
@@ -39,10 +46,9 @@ BEGIN
       MENUITEM "Normal",IDM_MC_VA_Normal
     END
     MENUITEM "",,0x00000800
-    POPUP "Playback Speed",IDM_MC_Speed
+    POPUP "Audio Streams",IDM_MC_AudioStreams
     BEGIN
-      MENUITEM "Slower",IDM_MC_PS_Slower
-      MENUITEM "Faster",IDM_MC_PS_Faster
+      MENUITEM "Unavailable",IDM_UNAVAILABLE
     END
     MENUITEM "",,0x00000800
     MENUITEM "&Exit\tAlt+F4",IDM_FILE_Exit

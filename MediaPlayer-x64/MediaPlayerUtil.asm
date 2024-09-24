@@ -61,6 +61,8 @@ ENDIF
 RTLC_HEADER_SIZE        EQU SIZEOF RTLC_HEADER
 
 .DATA
+ALIGN 4
+
 IFDEF __UNICODE__
 szMemoryDisplayDC       DB 'D',0,'I',0,'S',0,'P',0,'L',0,'A',0,'Y',0
                         DB 0,0,0,0
