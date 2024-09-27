@@ -19,6 +19,8 @@ MediaPlayerWindowCreate     PROTO hWndParent:DWORD, xpos:DWORD, ypos:DWORD, dwWi
 _MPWWndProc                 PROTO hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
 _MPWInit                    PROTO hWin:DWORD
 
+.CONST
+
 
 .DATA
 ALIGN 4
@@ -104,9 +106,6 @@ MediaPlayerWindowCreate ENDP
 ; Main processing window for our MediaPlayerWindow Control.
 ;------------------------------------------------------------------------------
 _MPWWndProc PROC USES EBX hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
-    LOCAL ps:PAINTSTRUCT
-    LOCAL rect:RECT
-    LOCAL hdc:HDC
     
     mov eax, uMsg
     .IF eax == WM_NCCREATE
@@ -123,31 +122,10 @@ _MPWWndProc PROC USES EBX hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
         mov eax, 0
         ret
 
-;    .ELSEIF eax == WM_ERASEBKGND
-;        mov eax, 1
-;        ret
-
-;    .ELSEIF eax == WM_PAINT
-;        .IF pMP != 0 ;&& g_Playing == TRUE
-;            Invoke BeginPaint, hWin, Addr ps
-;            mov hdc, eax
-;            Invoke MFPMediaPlayer_UpdateVideo, pMP
-;            Invoke EndPaint, hWin, Addr ps
-;            mov eax, 0
-;            ret
-;        .ENDIF
-;    
-;    .ELSEIF eax == WM_SIZE
-;        .IF wParam == SIZE_RESTORED
-;            .IF pMP != 0 ;&& g_Playing == TRUE 
-;                Invoke BeginPaint, hWin, Addr ps
-;                mov hdc, eax
-;                Invoke MFPMediaPlayer_UpdateVideo, pMP
-;                Invoke EndPaint, hWin, Addr ps
-;                mov eax, 0
-;                ret
-;            .ENDIF
-;        .ENDIF
+    .ELSEIF eax == WM_MOUSEMOVE
+        Invoke GUIShowControlsCheck, lParam
+        mov eax, 0
+        ret
     
     ;--------------------------------------------------------------------------
     ; Drag and drop support
@@ -163,36 +141,22 @@ _MPWWndProc PROC USES EBX hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
         mov hDrop, 0
         mov eax, 0
         ret
-    
-    .ELSEIF eax == WM_GETDLGCODE
-        mov eax, DLGC_WANTALLKEYS or DLGC_WANTARROWS
-        ret
-    
-    .ELSEIF eax == WM_KEYDOWN
-        .IF wParam == VK_SPACE
-            Invoke MFPMediaPlayer_Toggle, pMP
-            mov eax, 0
-            ret
-        .ELSEIF wParam == VK_ESCAPE
+
+    .ELSEIF eax == WM_CHAR
+        .IF wParam == VK_ESCAPE
             .IF g_Fullscreen == TRUE
                 Invoke GUIFullscreenExit, hMainWindow
                 mov eax, 0
                 ret
-            .ELSE
-                Invoke DefWindowProc, hWin, uMsg, wParam, lParam
-                ret
             .ENDIF
-;        .ELSEIF wParam == VK_F11
-;            Invoke GUIToggleFullscreen, hMainWindow
-;            mov eax, 0
-;            ret
-        .ELSE
-            Invoke DefWindowProc, hWin, uMsg, wParam, lParam
-            ret
         .ENDIF
+        Invoke DefWindowProc, hWin, uMsg, wParam, lParam
+        ret
     
     .ELSEIF eax == WM_LBUTTONUP
         Invoke MFPMediaPlayer_Toggle, pMP
+        mov eax, 0
+        ret
     
     .ELSEIF eax == WM_LBUTTONDBLCLK
         Invoke SetFocus, hWin
@@ -200,7 +164,6 @@ _MPWWndProc PROC USES EBX hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
             Invoke GUIFullscreenExit, hMainWindow
             mov eax, 0
             ret
-        
         .ELSE
             Invoke GUIFullscreenEnter, hMainWindow
             mov eax, 0
@@ -248,8 +211,6 @@ _MPWInit PROC hWin:DWORD
     
     ret
 _MPWInit ENDP
-
-
 
 
 

@@ -72,6 +72,8 @@ GUISetTitleMediaLoaded      PROTO hWin:DWORD, lpszMediaLoaded:DWORD
 GUIToggleFullscreen         PROTO hWin:DWORD
 GUIFullscreenEnter          PROTO hWin:DWORD
 GUIFullscreenExit           PROTO hWin:DWORD
+GUIHideControlsCheck        PROTO
+GUIShowControlsCheck        PROTO lParam:LPARAM
 
 GUIIsClickInArea            PROTO hWin:DWORD, dwArea:DWORD, lParam:DWORD
 GUILanguageChange           PROTO hWin:DWORD
@@ -215,6 +217,7 @@ ACC_MC_STREAM6          EQU 916
 ACC_MC_STREAM7          EQU 917
 ACC_MC_STREAM8          EQU 918
 ACC_MC_STREAM9          EQU 919
+ACC_MC_TOGGLEPLAY       EQU 920
 
 MFPLAYER_LEFT           EQU 10
 MFPLAYER_TOP            EQU 10
@@ -243,6 +246,8 @@ MP_AREA_CM_PLAYER       EQU 2
 MFP_DEFAULT_RATE        EQU 1000 ; x1
 MPF_MAX_RATE            EQU 4000 ; x4
 MPF_MIN_RATE            EQU 125
+
+MP_HIDECONTROLS_TIMEOUT EQU 3000
 
 .DATA
 ALIGN 4
@@ -291,14 +296,6 @@ szRatex3                DB " ",0,"[",0,"x",0,"3",0,"]",0
                         DB 0,0,0,0
 szRatex4                DB " ",0,"[",0,"x",0,"4",0,"]",0
                         DB 0,0,0,0
-;szCLClose               DB "c",0,"l",0,"o",0,"s",0,"e",0
-;                        DB 0,0,0,0
-;szCLMinimized           DB "m",0,"i",0,"n",0,"i",0,"m",0,"i",0,"z",0,"e",0,"d",0
-;                        DB 0,0,0,0
-;szCLFullscreen          DB "f",0,"u",0,"l",0,"l",0,"s",0,"c",0,"r",0,"e",0,"e",0,"n",0
-;                        DB 0,0,0,0
-;szCLVolume              DB "v",0,"o",0,"l",0,"u",0,"m",0,"e",0,":",0
-;                        DB 0,0,0,0
 
 szShellExplore          DB "e",0,"x",0,"p",0,"l",0,"o",0,"r",0,"e",0
                         DB 0,0,0,0
@@ -358,7 +355,9 @@ g_LangID                DD 0        ; Language ID current in use
 g_LangRTL               DD FALSE    ; Using Right To Left layout for langauges that require it 
 g_Playing               DD FALSE    ; Currently playing
 g_Fullscreen            DD FALSE    ; Fullscreen or not
+g_HideControls          DD FALSE    ; Hide controls when fullscreen after 3 seconds
 g_wpPrev                WINDOWPLACEMENT <>
+g_CursorPos             POINT <>
 g_PrevStyle             DD 0        ; Used to save/restore Style flags
 g_PrevExStyle           DD 0        ; Used to save/restore ExStyle flags
 g_PrevMenu              DD 0        ; Used to save/restore menu

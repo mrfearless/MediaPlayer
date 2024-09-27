@@ -64,6 +64,8 @@ GUISetTitleMediaLoaded      PROTO hWin:QWORD, lpszMediaLoaded:QWORD
 GUIToggleFullscreen         PROTO hWin:QWORD
 GUIFullscreenEnter          PROTO hWin:QWORD
 GUIFullscreenExit           PROTO hWin:QWORD
+GUIHideControlsCheck        PROTO
+GUIShowControlsCheck        PROTO lParam:LPARAM
 
 GUIIsClickInArea            PROTO hWin:QWORD, qwArea:QWORD, lParam:QWORD
 
@@ -174,6 +176,14 @@ WINDOWPLACEMENT	     STRUCT
 WINDOWPLACEMENT	     ENDS
 ENDIF
 
+IFNDEF CURSORINFO
+CURSORINFO          STRUCT
+    cbSize          DWORD ?
+    flags           DWORD ?
+    hCursor         HCURSOR ?
+    ptScreenPos     POINT <>
+CURSORINFO          ENDS
+ENDIF
 .CONST
 ;------------------------------------------------------------------------------
 ; MediaPlayer Constants
@@ -212,6 +222,7 @@ ACC_MC_STREAM6          EQU 916
 ACC_MC_STREAM7          EQU 917
 ACC_MC_STREAM8          EQU 918
 ACC_MC_STREAM9          EQU 919
+ACC_MC_TOGGLEPLAY       EQU 920
 
 MFPLAYER_LEFT           EQU 10 ;9;14
 MFPLAYER_TOP            EQU 10 ;15;20
@@ -241,6 +252,8 @@ MP_AREA_CM_PLAYER       EQU 2
 MFP_DEFAULT_RATE        EQU 1000 ; x1
 MPF_MAX_RATE            EQU 4000 ; x4
 MPF_MIN_RATE            EQU 125
+
+MP_HIDECONTROLS_TIMEOUT EQU 3000
 
 .DATA
 ALIGN 4
@@ -289,14 +302,6 @@ szRatex3                DB " ",0,"[",0,"x",0,"3",0,"]",0
                         DB 0,0,0,0
 szRatex4                DB " ",0,"[",0,"x",0,"4",0,"]",0
                         DB 0,0,0,0
-;szCLClose               DB "c",0,"l",0,"o",0,"s",0,"e",0
-;                        DB 0,0,0,0
-;szCLMinimized           DB "m",0,"i",0,"n",0,"i",0,"m",0,"i",0,"z",0,"e",0,"d",0
-;                        DB 0,0,0,0
-;szCLFullscreen          DB "f",0,"u",0,"l",0,"l",0,"s",0,"c",0,"r",0,"e",0,"e",0,"n",0
-;                        DB 0,0,0,0
-;szCLVolume              DB "v",0,"o",0,"l",0,"u",0,"m",0,"e",0,":",0
-;                        DB 0,0,0,0
 
 szShellExplore          DB "e",0,"x",0,"p",0,"l",0,"o",0,"r",0,"e",0
                         DB 0,0,0,0
@@ -354,7 +359,9 @@ g_LangID                DD 0        ; Language ID current in use
 g_LangRTL               DQ FALSE    ; Using Right To Left layout for langauges that require it 
 g_Playing               DQ FALSE    ; Currently playing
 g_Fullscreen            DQ FALSE    ; Fullscreen or not
+g_HideControls          DQ FALSE    ; Hide controls when fullscreen after 3 seconds
 g_wpPrev                WINDOWPLACEMENT <>
+g_CursorPos             POINT <>
 g_PrevStyle             DQ 0        ; Used to save/restore Style flags
 g_PrevExStyle           DQ 0        ; Used to save/restore ExStyle flags
 g_PrevMenu              DQ 0        ; Used to save/restore menu

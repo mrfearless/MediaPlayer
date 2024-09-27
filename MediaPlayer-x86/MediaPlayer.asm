@@ -387,7 +387,11 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
             .ELSEIF eax == IDM_PS_4000
                 Invoke GUISetPlaySpeed, IDM_PS_4000, 4000
             .ENDIF
-            
+        
+        .ELSEIF eax == ACC_MC_TOGGLEPLAY
+            .IF pMI != 0
+                Invoke MFPMediaPlayer_Toggle, pMP
+            .ENDIF
         .ENDIF
     
     ;--------------------------------------------------------------------------
@@ -481,6 +485,14 @@ WndProc PROC hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
         .ENDIF
         Invoke DefWindowProc, hWin, uMsg, wParam, lParam
         ret    
+    
+    ;--------------------------------------------------------------------------
+    ; For fullscreen hiding of controls after 3 seconds check
+    ;--------------------------------------------------------------------------
+    .ELSEIF eax == WM_TIMER
+        Invoke GUIHideControlsCheck
+        mov eax, 0
+        ret
     
     ;--------------------------------------------------------------------------
     ; Show context menu
@@ -861,9 +873,17 @@ GUIResize PROC hWin:DWORD, wParam:DWORD, lParam:DWORD
     .IF g_Fullscreen == FALSE
         Invoke SetWindowPos, hMediaPlayerWindow, HWND_TOP, dwXPos, dwYPos, dwPlayerWidth, dwPlayerHeight, SWP_NOZORDER
     .ELSE
-        mov eax, dwPlayerHeight
-        add eax, MFPLAYER_TOP
-        mov dwPlayerHeight_, eax
+        
+        ; Hide controls in fullscreen after x seconds
+        .IF g_HideControls == TRUE
+            mov eax, dwClientHeight
+            mov dwPlayerHeight, eax
+            mov dwPlayerHeight_, eax
+        .ELSE
+            mov eax, dwPlayerHeight
+            add eax, MFPLAYER_TOP
+            mov dwPlayerHeight_, eax
+        .ENDIF
         
         mov eax, dwPlayerWidth
         add eax, 2
@@ -1153,6 +1173,12 @@ GUIFullscreenEnter PROC hWin:DWORD
         
         ; Fix for dropdown buttons appearing highlighted after entering fullscreen
         Invoke InvalidateRect, hMPC_ToolbarControls, NULL, TRUE
+        
+        .IF g_MediaType == 0 ; Video
+            Invoke GetCursorPos, Addr g_CursorPos
+            Invoke SetTimer, hMainWindow, 1, MP_HIDECONTROLS_TIMEOUT, NULL
+        .ENDIF
+        Invoke SetFocus, hMediaPlayerWindow
     .ENDIF
     
     ret
@@ -1171,6 +1197,8 @@ GUIFullscreenExit PROC USES EBX hWin:DWORD
     ;PrintText 'GUIFullscreenExit'
     ENDIF
     
+    Invoke KillTimer, hMainWindow, 1
+    
     ;----------------------------------------------------------------------
     ; Reset to normal window style and position
     ;----------------------------------------------------------------------
@@ -1181,7 +1209,9 @@ GUIFullscreenExit PROC USES EBX hWin:DWORD
     Invoke SetWindowPlacement, hWin, Addr g_wpPrev
     Invoke SetWindowPos, hWin, 0, 0, 0, 0, 0, SWP_FRAMECHANGED or SWP_NOMOVE or SWP_NOSIZE or SWP_NOACTIVATE
     Invoke SetWindowPos, hWin, 0, 0, 0, 0, 0, SWP_NOMOVE or SWP_NOSIZE or SWP_SHOWWINDOW or SWP_NOACTIVATE
+    
     mov g_Fullscreen, FALSE
+    mov g_HideControls, FALSE
 
     Invoke GUIResize, hWin, 0, 0
     Invoke InvalidateRect, hWin, NULL, TRUE
@@ -1190,9 +1220,124 @@ GUIFullscreenExit PROC USES EBX hWin:DWORD
     ; Fix for dropdown buttons appearing highlighted after exiting fullscreen
     Invoke InvalidateRect, hMPC_ToolbarControls, NULL, TRUE
     Invoke SetWindowPos, hMPC_ToolbarControls, 0, 0, 0, 0, 0, SWP_FRAMECHANGED or SWP_NOMOVE or SWP_NOSIZE or SWP_NOACTIVATE
+	Invoke SetFocus, hMediaPlayerWindow
+	Invoke ShowCursor, TRUE
 	
     ret
 GUIFullscreenExit ENDP
+
+;------------------------------------------------------------------------------
+; GUIHideControlsCheck (WM_TIMER)
+;
+; When timer event fires (every 3 seconds) after entering fullscreen mode
+; we check if the mouse is over the video rendering window (hMediaPlayerWindow)
+;
+; If the mouse is over the controls below hMediaPlayerWindow, we do nothing, 
+; otherwise we hide the controls.
+;
+; A WM_MOUSEMOVE event in the video rendering window (hMediaPlayerWindow) is 
+; fired all the time (possibly due to the EVR itself), so we have to check the
+; last cursor pos vs current cursor pos, if they are the same we do nothing, 
+; this works around the constant WM_MOUSEMOVE events that the video rendering
+; window sends. If the cursor pos has changed, we can then starts the timer
+; to check if we should hide the controls
+;------------------------------------------------------------------------------
+GUIHideControlsCheck PROC
+    LOCAL rect:RECT
+    LOCAL pt:POINT
+    
+    .IF g_Fullscreen == TRUE
+        IFDEF DEBUG32
+        ;PrintText 'WM_TIMER::hMainWindow'
+        ENDIF
+        .IF g_HideControls == FALSE
+            ;------------------------------------------------------------------
+            ; Check cursor position is over video rendering window, if not we
+            ; do nothing. For example if user has the mouse over any controls.
+            ;------------------------------------------------------------------
+            Invoke GetWindowRect, hMediaPlayerWindow, Addr rect
+            Invoke GetCursorPos, Addr pt
+            Invoke PtInRect, Addr rect, pt.x, pt.y
+            .IF eax == TRUE
+                ;--------------------------------------------------------------
+                ; Kill the timer, it is only restarted by WM_MOUSEMOVE in the
+                ; video rendering window (hMediaPlayerWindow) 
+                ;--------------------------------------------------------------
+                mov g_HideControls, TRUE
+                Invoke KillTimer, hMainWindow, 1
+                ;--------------------------------------------------------------
+                ; Move/redraw all the controls and video window effectively 
+                ; expanding the video window and pushing all other controls 
+                ; beyond the window bottom edge, thus "hiding" them. Also hide
+                ; the cursor.
+                ;-------------------------------------------------------------- 
+                Invoke GUIResize, hMainWindow, 0, 0
+                Invoke ShowCursor, FALSE
+            .ENDIF
+        .ENDIF
+;    .ELSE
+;        .IF g_HideControls == TRUE
+;            mov g_HideControls, FALSE
+;            Invoke KillTimer, hWin, hWin
+;        .ENDIF
+    .ENDIF
+        
+    ret
+GUIHideControlsCheck ENDP
+
+;------------------------------------------------------------------------------
+; GUIShowControlsCheck (from WM_MOUSEMOVE in hMediaPlayerWindow)
+;------------------------------------------------------------------------------
+GUIShowControlsCheck PROC USES EBX lParam:LPARAM
+    LOCAL pt:POINT
+    
+    .IF g_Fullscreen == TRUE
+        .IF g_MediaType == 1 ; audio
+            ret
+        .ENDIF
+        
+        mov eax, lParam
+        and eax, 0FFFFh
+        mov pt.x, eax
+        mov eax, lParam
+        shr eax, 16d
+        mov pt.y, eax
+        
+        ;----------------------------------------------------------------------
+        ; Check if cursor position has changed since last position. If not, we
+        ; do nothing. Otherwise we save cursor pos, show
+        ;----------------------------------------------------------------------
+        mov eax, g_CursorPos.x
+        mov ebx, g_CursorPos.y
+        .IF eax == pt.x && ebx == pt.y
+            ; Do nothing
+        .ELSE
+            Invoke GetCursorPos, Addr g_CursorPos
+            .IF g_HideControls == TRUE
+            
+                ;--------------------------------------------------------------
+                ; Kill the existing timer.
+                ;--------------------------------------------------------------
+                mov g_HideControls, FALSE
+                Invoke KillTimer, hMainWindow, 1
+                ;--------------------------------------------------------------
+                ; Move/redraw all the controls and video window effectively 
+                ; shrinking the video window and bringing all other controls 
+                ; beyond the window bottom edge up, thus "Showing" them. Also 
+                ; show the cursor.
+                ;-------------------------------------------------------------- 
+                Invoke GUIResize, hMainWindow, 0, 0
+                Invoke ShowCursor, TRUE
+                ;--------------------------------------------------------------
+                ; Reset timer for next check
+                ;--------------------------------------------------------------
+                Invoke SetTimer, hMainWindow, 1, MP_HIDECONTROLS_TIMEOUT, NULL
+            .ENDIF
+        .ENDIF
+    .ENDIF
+
+    ret
+GUIShowControlsCheck ENDP
 
 ;------------------------------------------------------------------------------
 ; GUIIsClickInArea (WM_LBUTTONUP & WM_LBUTTONDBLCLK)

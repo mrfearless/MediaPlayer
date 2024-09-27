@@ -106,10 +106,10 @@ Menu=1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0
 
 [StringTable]
 [VerInf]
-FV=1.0.0.4
-FileVersion=1.0.0.4
-PV=1.0.0.4
-ProductVersion=1.0.0.4
+FV=1.0.0.5
+FileVersion=1.0.0.5
+PV=1.0.0.5
+ProductVersion=1.0.0.5
 Nme=VERINF1
 ID=1
 VerOS=0x00000004
@@ -144,7 +144,7 @@ Group=Assembly,Resources,Misc
 17=1
 18=1
 [AutoLoad]
-AutoLoad=1,2,11
+AutoLoad=1,2,12
 [RADebugBP]
 2=
 1=
@@ -172,7 +172,7 @@ MilestoneOnTime=2
 MilestoneOnDate=0
 MilestoneOnDateWhen=1
 MilestoneOnDateStatus=0
-MilestoneOnDateDate=24
+MilestoneOnDateDate=26
 MilestoneOnDateTimeYear=2024
 MilestoneOnDateTimeMonth=8
 MilestoneOnDateTimeDate=9
@@ -196,15 +196,15 @@ ProductVer2Range=0
 ProductVer3Range=0
 ProductVer4Range=0
 [PTimer]
-PTimer=822008962
+PTimer=2066827258
 [Collapse]
-1=1411383936,2100298240,481779422,536841203,117442552
+1=1411416704,2100298240,2013267678,1281356031,8356862,224
 2=
 7=72,261376
-8=75530752,33558658,790560673,
+8=75530752,302518402,790560672,
 11=213910152,
 9=65408
-12=2944
+12=2818
 13=259,1
 3=
 6=268995136,631
@@ -214,16 +214,16 @@ PTimer=822008962
 17=1090912256,4160
 18=,58200064,
 [Size]
-1=0,0,0,0,1683
-2=0,0,0,0,13613
+1=0,0,0,0,40828
+2=0,0,0,0,9524
 4=0,0,0,0
 6=0,0,0,0,2334
 7=0,0,0,0,2060
-8=0,0,0,0,24991
+8=0,0,0,0,19025
 10=0,0,0,0
 11=0,0,0,0,4475
 9=0,0,0,0,1186
-12=0,0,0,0,797
+12=0,0,0,0,3477
 13=0,0,0,0,3736
 3=0,0,0,0,654
 14=0,0,0,0,877
@@ -279,5 +279,6 @@ ID=900
 16=ACC_MC_STREAM7,917,55,8
 17=ACC_MC_STREAM8,918,56,8
 18=ACC_MC_STREAM9,919,57,8
+19=ACC_MC_TOGGLEPLAY,920,32,0
 
 
